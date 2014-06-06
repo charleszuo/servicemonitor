@@ -32,7 +32,8 @@ public class TemplateGenerator {
 	private static final String generatedFileDir = "/home/charles/workspace_renren/xiaonei-guide/src/test/java/com/renren/seo/serviceproxy/generated/";
 	private static final String generatedDuplicateFileDir = "/home/charles/workspace_renren/xiaonei-guide/src/test/java/com/renren/seo/serviceproxy/duplicate/generated/";
 	private static final String generatedSystemFileDir = "/home/charles/workspace_renren/xiaonei-guide/src/test/java/com/renren/seo/serviceproxy/system/generated/";
-	private static final String packageName = "com.renren.seo.serviceproxy.generated";
+	private static final String defaultPackageName = "com.renren.seo.serviceproxy.generated";
+	private static final String systemPackageName = "com.renren.seo.serviceproxy.system.generated";
 	private static final String duplicatePackageName = "com.renren.seo.serviceproxy.duplicate.generated";
 	
 	public static void generateClassFile(String inputClassName, Set<DependentDescription> methodDescriptionSet, String templateFile, Map<String, String> generatedFileMap) throws Exception{
@@ -42,22 +43,26 @@ public class TemplateGenerator {
 		context.put("ClassName", className);
 		context.put("TargetClassName", targetClassName);
 		String dir = null;
+		String packageName = null;
 		// 类名有重复,目前只处理最多重复一次
 		if(!generatedFileMap.containsKey(className)){
-			context.put("PackageName", packageName);
 			dir = generatedFileDir;
+			packageName = defaultPackageName;
 			generatedFileMap.put(className, null);
 		}else{
 			dir = generatedDuplicateFileDir;
-			context.put("PackageName", duplicatePackageName);
+			packageName = duplicatePackageName;
 		}
+		context.put("PackageName", packageName);
 		List<String> methods = new ArrayList<String>();
 		for(Iterator<DependentDescription> it = methodDescriptionSet.iterator(); it.hasNext(); ){
 			DependentDescription dependent = it.next();
 			String classMethodDescription = dependent.toStringWithException();
+			// todo for static.vm
 			if(classMethodDescription.contains(ConstantName.GET_INSTANCE)){
 				continue;
 			}
+			dependent.setGeneratedProxyClassName(packageName + "." + className);
 			// 需要用模式来重构
 			String method = MethodParser.parse(classMethodDescription, dependent.getMethodType());
 			StringBuilder methodContentBuilder = new StringBuilder();
@@ -73,9 +78,15 @@ public class TemplateGenerator {
 		writer.close();
 	}
 	
-	public static void generateSystemFile(String fileName, String templateFile) throws Exception{
+	public static void generateSystemFile(String className, Set<DependentDescription> methodDescriptionSet, String templateFile) throws Exception{
 		VelocityContext context = new VelocityContext();
-		FileWriter writer = new FileWriter(generatedSystemFileDir + fileName + ".java");
+		FileWriter writer = new FileWriter(generatedSystemFileDir + className + ".java");
+		if(methodDescriptionSet != null){
+			for(Iterator<DependentDescription> it = methodDescriptionSet.iterator(); it.hasNext(); ){
+				DependentDescription dependent = it.next();
+				dependent.setGeneratedProxyClassName(systemPackageName + "." + className);
+			}
+		}
 		Template template = Velocity.getTemplate(templateFile);
 		template.merge(context, writer);
 		writer.flush();

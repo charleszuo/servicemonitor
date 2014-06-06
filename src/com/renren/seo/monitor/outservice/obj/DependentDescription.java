@@ -13,6 +13,8 @@ public class DependentDescription implements Comparable<DependentDescription>{
 	private boolean isInterface;
 	private int methodType;
 	private String annotation;
+	private boolean isLocalCode;
+	private String generatedProxyClassName;
 	
 	private List<DependentDescription> parenetDependentObjectList = new ArrayList<DependentDescription>();
 	
@@ -103,6 +105,22 @@ public class DependentDescription implements Comparable<DependentDescription>{
 
 	public void setAnnotation(String annotation) {
 		this.annotation = annotation;
+	}
+
+	public boolean isLocalCode() {
+		return isLocalCode;
+	}
+
+	public void setIsLocalCode(boolean isLocalCode) {
+		this.isLocalCode = isLocalCode;
+	}
+
+	public String getGeneratedProxyClassName() {
+		return generatedProxyClassName;
+	}
+
+	public void setGeneratedProxyClassName(String generatedProxyClassName) {
+		this.generatedProxyClassName = generatedProxyClassName;
 	}
 
 	@Override
