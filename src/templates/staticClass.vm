@@ -1,0 +1,9 @@
+package $PackageName;
+
+public class $ClassName{
+
+#foreach($method in $Methods)
+	$method
+#end
+	
+}

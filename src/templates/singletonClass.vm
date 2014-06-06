@@ -1,0 +1,18 @@
+package $PackageName;
+
+public class $ClassName{
+	private $TargetClassName target = ${TargetClassName}.getInstance();
+	
+	private $ClassName(){}
+	
+	private static $ClassName instance = new $ClassName();
+	
+	public static $ClassName getInstance(){
+		return instance;
+	}
+	
+#foreach($method in $Methods)
+	$method
+#end
+	
+}
