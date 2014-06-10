@@ -1,0 +1,21 @@
+package com.renren.seo.serviceproxy.manual.generated;
+
+import com.xiaonei.xce.buddybyaddtimecache.BuddyByAddTime;
+import com.xiaonei.xce.buddybyaddtimecache.DefaultBuddyByAddTime;
+
+public class BuddyByAddTimeCacheAdapter<T extends BuddyByAddTime>{
+	private com.xiaonei.xce.buddybyaddtimecache.BuddyByAddTimeCacheAdapter<DefaultBuddyByAddTime> target = com.xiaonei.xce.buddybyaddtimecache.BuddyByAddTimeCacheAdapter.getInstance();
+	
+	private BuddyByAddTimeCacheAdapter(){}
+	
+	private static BuddyByAddTimeCacheAdapter<DefaultBuddyByAddTime> instance = new BuddyByAddTimeCacheAdapter<DefaultBuddyByAddTime>();
+	
+	public static BuddyByAddTimeCacheAdapter<DefaultBuddyByAddTime> getInstance(){
+		return instance;
+	}
+	
+	public  java.util.List<DefaultBuddyByAddTime> getFriendListWithinTime(int userId, long beginTime, long endTime)  {
+		 return target.getFriendListWithinTime(userId, beginTime, endTime);
+	}
+	
+}

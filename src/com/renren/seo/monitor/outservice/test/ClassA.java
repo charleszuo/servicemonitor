@@ -1,13 +1,16 @@
 package com.renren.seo.monitor.outservice.test;
 
-public class ClassA implements Iface2{
+public class ClassA extends ClassB implements Iface{
 
-	@Override
+	public int a = 1;
+	
+	public static String CONSTANT_NAME = "it is a test";
+	
+	
 	public void test(int[] a) {
-		
+		int b = NEW_REG_REQUEST_FRIENDS_WITH_NO_NAME;
 	}
 
-	@Override
 	public void test2(Integer[] a) {
 		
 	}

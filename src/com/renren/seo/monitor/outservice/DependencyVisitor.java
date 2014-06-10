@@ -6,12 +6,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
-import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
-
-import com.renren.seo.monitor.outservice.DependencyVisitor3.AnnotationDependencyVisitor3;
 
 /**
  * DependencyVisitor
@@ -25,7 +22,7 @@ public class DependencyVisitor extends ClassVisitor {
 	private Map<String, String> allTargetClasses;
 
 	private Map<String, String> globalClassesMethodDependentGraph;
-
+	
 	Set<String> dependentClasses = new HashSet<String>();
 
 	Stack<String> ownMethod = new Stack<String>();
@@ -96,7 +93,6 @@ public class DependencyVisitor extends ClassVisitor {
 	class MethodDependencyVisitor extends MethodVisitor {
 
 		private DependencyVisitor classVisitor;
-		private int a;
 
 		public MethodDependencyVisitor(DependencyVisitor classVisitor) {
 			super(Opcodes.ASM5);

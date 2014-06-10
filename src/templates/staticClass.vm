@@ -5,5 +5,8 @@ public class $ClassName{
 #foreach($method in $Methods)
 	$method
 #end
-	
+
+#foreach($filed in $Fields)
+	$filed
+#end
 }

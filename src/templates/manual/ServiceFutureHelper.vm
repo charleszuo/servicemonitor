@@ -1,0 +1,15 @@
+package com.renren.seo.serviceproxy.manual.generated;
+
+import com.renren.xoa.lite.ServiceFuture;
+
+public class ServiceFutureHelper{
+
+	public static <T> T execute(ServiceFuture<T> future, long timeoutMillis) throws com.renren.xoa.commons.exception.XoaException {
+		 return com.renren.xoa.lite.ServiceFutureHelper.execute(future, timeoutMillis);
+	}
+
+	public static <T> T executeWithThroughputControl(ServiceFuture<T> future, final String key,
+            final int maxThroughput, long maxTimeout) throws com.renren.xoa.commons.exception.XoaException{
+		return com.renren.xoa.lite.ServiceFutureHelper.executeWithThroughputControl(future, key, maxThroughput, maxTimeout);
+	}
+}

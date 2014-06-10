@@ -6,6 +6,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.renren.seo.monitor.outservice.ConstantName;
+import com.renren.seo.monitor.outservice.obj.DependentDescription;
 import com.renren.seo.monitor.outservice.obj.MethodObject;
 
 public class MethodParser {
@@ -37,6 +38,7 @@ public class MethodParser {
 	private static final String SPACE = " ";
 	private static final String COMMA = ",";
 	private static final String ARRAY = "[]";
+	private static final String VARARGS = "...";
 	private static final String BRACKET = "()";
 	private static final String LEFT_BRACKET = "(";
 	private static final String RIGHT_BRACKET = ")";
@@ -61,7 +63,7 @@ public class MethodParser {
 		typeMap.put(CHAR_VOID, TYPE_VOID);
 	}
 	
-	public static MethodObject parseMethodDescription(String methodWithStaticAndException){
+	public static MethodObject parseMethodDescription(String methodWithStaticAndException, boolean isVarArgs){
 		MethodObject method = null;
 		Matcher m = p.matcher(methodWithStaticAndException);
 		if(m.matches() && m.groupCount() >= 6){
@@ -74,7 +76,7 @@ public class MethodParser {
 			
 			method = new MethodObject();
 			method.setMethodName(methodNameStr);
-			method.setParameters(parseParameter(parameterStr));
+			method.setParameters(parseParameter(parameterStr, isVarArgs));
 			method.setAccStatic(parseAccStatic(accStaticStr));
 			method.setReturnType(parseReturn(returnStr));
 			method.setExceptions(parseException(exceptionsStr));
@@ -83,9 +85,9 @@ public class MethodParser {
 		return method;
 	}
 	
-	public static String parse(String classMethodDescription, int methodType){
+	public static String parse(String classMethodDescription, int methodType, boolean isVarArgs){
 		StringBuilder sb = new StringBuilder();
-		MethodObject methodOject = parseMethodDescription(classMethodDescription);
+		MethodObject methodOject = parseMethodDescription(classMethodDescription, isVarArgs);
 		if(methodOject != null){
 			sb.append(PUBLIC);
 			sb.append(methodOject.getAccStatic()).append(SPACE);
@@ -117,7 +119,7 @@ public class MethodParser {
 				String returnType = methodOject.getReturnType();
 				sb.append("\t\t").append(returnType).append(" ").append(ConstantName.PROXY_TARGET).append(" = ")
 					.append(caller).append(".").append(methodOject.getMethodName()).append("(").append(parseParameterResult[1]).append(");\n");
-				sb.append("\t\tcom.renren.seo.serviceproxy.system.generated.JavaDynamicProxy proxy = new com.renren.seo.serviceproxy.system.generated.JavaDynamicProxy();\n");
+				sb.append("\t\tcom.renren.seo.serviceproxy.generated.JavaDynamicProxy proxy = new com.renren.seo.serviceproxy.generated.JavaDynamicProxy();\n");
 				sb.append("\t\t").append("return (").append(returnType).append(")").append("proxy.bind(").append(ConstantName.PROXY_TARGET).append(");\n");
 			}else if(methodType == ConstantName.METHOD_TYPE_ALL_INSTANCE_METHOD_CLASS_FACTORY_METHOD){
 				//Text: xce.tripod.client.TripodCacheClient proxyTarget = xce.tripod.client.TripodCacheClientFactory.getClient(param24);
@@ -126,7 +128,7 @@ public class MethodParser {
 				String returnType = methodOject.getReturnType();
 				sb.append("\t\t").append(returnType).append(" ").append(ConstantName.PROXY_TARGET).append(" = ")
 					.append(caller).append(".").append(methodOject.getMethodName()).append("(").append(parseParameterResult[1]).append(");\n");
-				sb.append("\t\tcom.renren.seo.serviceproxy.system.generated.CglibDynamicProxy proxy = new com.renren.seo.serviceproxy.system.generated.CglibDynamicProxy();\n");
+				sb.append("\t\tcom.renren.seo.serviceproxy.generated.CglibDynamicProxy proxy = new com.renren.seo.serviceproxy.generated.CglibDynamicProxy();\n");
 				sb.append("\t\t").append("return (").append(returnType).append(")").append("proxy.bind(").append(ConstantName.PROXY_TARGET).append(");\n");
 			}
 			sb.append("\t}\n");
@@ -141,7 +143,7 @@ public class MethodParser {
 		return accStaticBuilder.toString();
 	}
 	
-	public static String[] parseParameter(String parameterStr){
+	public static String[] parseParameter(String parameterStr, boolean isVarArgs){
 		String[] result = new String[2];
 		if(parameterStr == null || parameterStr.length() == 0){
 			result[0] = BRACKET;
@@ -173,8 +175,14 @@ public class MethodParser {
 							i++;
 						}
 					}
-					for(int j = 0; j < arrayCount; j++){
-						parameterBuilder.append(ARRAY);
+					
+					// 处理变长数组
+					if(isVarArgs){
+						parameterBuilder.append(VARARGS);
+					}else{
+						for(int j = 0; j < arrayCount; j++){
+							parameterBuilder.append(ARRAY);
+						}
 					}
 					parameterBuilder.append(SPACE).append(PARAM).append(i).append(COMMA).append(SPACE);
 					callerParameterBuilder.append(PARAM).append(i).append(COMMA).append(SPACE);
@@ -241,12 +249,12 @@ public class MethodParser {
 	
 	
 	public static void main(String[] args){
-		String targetMethod1 = "com/xiaonei/platform/core/usercount/UserCountMgr send (ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z static com.xiaonei.platform.component.application.notification.exception.AppNotificationException";
-		String targetMethod2 = "com/xiaonei/platform/core/usercount/UserCountMgr queryUnique (Lcom/xiaonei/platform/core/opt/OpUniq;)B; non-static java/sql/SQLException";
+		String targetMethod1 = "com/xiaonei/platform/core/usercount/UserCountMgr send (ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;)Z static com.xiaonei.platform.component.application.notification.exception.AppNotificationException";
+		String targetMethod2 = "com/xiaonei/platform/core/usercount/UserCountMgr queryUnique ([Lcom/xiaonei/platform/core/opt/OpUniq;)B; non-static java/sql/SQLException";
 		String targetMethod3 = "com/xiaonei/platform/core/usercount/UserCountMgr findHotShare (IIIIB)Lcom/renren/xoa/lite/ServiceFuture; static java/sql/SQLException";
 		String targetMethod4 = "com/xiaonei/platform/core/usercount/UserCountMgr findHotShare (S[[Lcom/renren/xoa/lite/ServiceFuture;IIB)[[I static java/sql/SQLException";
 		String targetMethod5 = "com/xiaonei/platform/core/usercount/UserCountMgr findHotShare ()Lcom/renren/xoa/lite/ServiceFuture; static ";
-		System.out.println(parse(targetMethod1, 0));
-		System.out.println(parse(targetMethod2, 0));
+		System.out.println(parse(targetMethod1, 0, false));
+		System.out.println(parse(targetMethod2, 0, true));
 	}
 }

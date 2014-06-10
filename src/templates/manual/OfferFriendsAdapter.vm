@@ -1,0 +1,34 @@
+package com.renren.seo.serviceproxy.manual.generated;
+
+import com.xiaonei.xce.offerfriends.DefaultOffer;
+import com.xiaonei.xce.offerfriends.Offer;
+
+public class OfferFriendsAdapter<T extends Offer>{
+	private com.xiaonei.xce.offerfriends.OfferFriendsAdapter<DefaultOffer> target = com.xiaonei.xce.offerfriends.OfferFriendsAdapter.getInstance();
+	
+	private OfferFriendsAdapter(){}
+	
+	private static OfferFriendsAdapter<DefaultOffer> instance = new OfferFriendsAdapter<DefaultOffer>();
+	
+	public static OfferFriendsAdapter<DefaultOffer> getInstance(){
+		return instance;
+	}
+	
+	public  void rebuild(int userId)  {
+		 target.rebuild(userId);
+	}
+
+	public  java.util.List<DefaultOffer> getBestOffer(int userId, int limit)  {
+		 return target.getBestOffer(userId, limit);
+	}
+
+	public  java.util.List<DefaultOffer> getBestOfferByStage(int stage, int userId, int limit)  {
+		 return target.getBestOfferByStage(stage, userId, limit);
+	}
+
+	public  java.util.List<DefaultOffer> getRandomOffer(int userId, int limit)  {
+		 return target.getRandomOffer(userId, limit);
+	}
+
+	
+}

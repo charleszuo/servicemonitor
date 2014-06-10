@@ -15,4 +15,7 @@ public class $ClassName{
 	$method
 #end
 	
+#foreach($filed in $Fields)
+	$filed
+#end
 }

@@ -3,8 +3,6 @@ package com.renren.seo.monitor.template;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -19,109 +17,118 @@ import com.renren.seo.monitor.outservice.ConstantName;
 import com.renren.seo.monitor.outservice.obj.DependentDescription;
 
 public class TemplateGenerator {
-	static{
+	static {
 		Properties p = new Properties();
 		try {
-			p.load(TemplateGenerator.class.getResourceAsStream("/properties/velocity.properties"));
+			p.load(TemplateGenerator.class
+					.getResourceAsStream("/properties/velocity.properties"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		Velocity.init(p);
 	}
-	
-	private static final String generatedFileDir = "/home/charles/workspace_renren/xiaonei-guide/src/test/java/com/renren/seo/serviceproxy/generated/";
-	private static final String generatedDuplicateFileDir = "/home/charles/workspace_renren/xiaonei-guide/src/test/java/com/renren/seo/serviceproxy/duplicate/generated/";
-	private static final String generatedSystemFileDir = "/home/charles/workspace_renren/xiaonei-guide/src/test/java/com/renren/seo/serviceproxy/system/generated/";
+
+	private static final String generatedFileDir = ConstantName.TARGET_WORK_SPACE + "/src/test/java/com/renren/seo/serviceproxy/generated/";
+	private static final String generatedDuplicateFileDir = ConstantName.TARGET_WORK_SPACE + "/src/test/java/com/renren/seo/serviceproxy/duplicate/generated/";
+	private static final String generatedMannualFileDir = ConstantName.TARGET_WORK_SPACE + "/src/test/java/com/renren/seo/serviceproxy/manual/generated/";
 	private static final String defaultPackageName = "com.renren.seo.serviceproxy.generated";
-	private static final String systemPackageName = "com.renren.seo.serviceproxy.system.generated";
+	private static final String manualPackageName = "com.renren.seo.serviceproxy.manual.generated";
 	private static final String duplicatePackageName = "com.renren.seo.serviceproxy.duplicate.generated";
-	
-	public static void generateClassFile(String inputClassName, Set<DependentDescription> methodDescriptionSet, String templateFile, Map<String, String> generatedFileMap) throws Exception{
-		VelocityContext context = new VelocityContext();
-		String targetClassName = inputClassName.replace(ConstantName.SLASH, ConstantName.POINT);
-		String className = targetClassName.substring(targetClassName.lastIndexOf(".") + 1);
-		context.put("ClassName", className);
-		context.put("TargetClassName", targetClassName);
-		String dir = null;
-		String packageName = null;
-		// 类名有重复,目前只处理最多重复一次
-		if(!generatedFileMap.containsKey(className)){
-			dir = generatedFileDir;
-			packageName = defaultPackageName;
-			generatedFileMap.put(className, null);
-		}else{
-			dir = generatedDuplicateFileDir;
-			packageName = duplicatePackageName;
-		}
-		context.put("PackageName", packageName);
-		List<String> methods = new ArrayList<String>();
-		for(Iterator<DependentDescription> it = methodDescriptionSet.iterator(); it.hasNext(); ){
-			DependentDescription dependent = it.next();
-			String classMethodDescription = dependent.toStringWithException();
-			// todo for static.vm
-			if(classMethodDescription.contains(ConstantName.GET_INSTANCE)){
-				continue;
-			}
-			dependent.setGeneratedProxyClassName(packageName + "." + className);
-			// 需要用模式来重构
-			String method = MethodParser.parse(classMethodDescription, dependent.getMethodType());
-			StringBuilder methodContentBuilder = new StringBuilder();
-			methodContentBuilder.append(method).append(" \n");
-			methods.add(method);
-		}
-		
-		context.put("Methods", methods);
-		FileWriter writer = new FileWriter(dir + className + ".java");
-		Template template = Velocity.getTemplate(templateFile);
-		template.merge(context, writer);
-		writer.flush();
-		writer.close();
-	}
-	
-	public static void generateSystemFile(String className, Set<DependentDescription> methodDescriptionSet, String templateFile) throws Exception{
-		VelocityContext context = new VelocityContext();
-		FileWriter writer = new FileWriter(generatedSystemFileDir + className + ".java");
-		if(methodDescriptionSet != null){
-			for(Iterator<DependentDescription> it = methodDescriptionSet.iterator(); it.hasNext(); ){
-				DependentDescription dependent = it.next();
-				dependent.setGeneratedProxyClassName(systemPackageName + "." + className);
-			}
-		}
-		Template template = Velocity.getTemplate(templateFile);
-		template.merge(context, writer);
-		writer.flush();
-		writer.close();
-	}
-	
-	public static void main(String[] args){
-		String inputClassName = "com/renren/newbie/service/NewbieHelperService";
-		Set<DependentDescription> methods = new HashSet<DependentDescription>();
-		DependentDescription d1 = new DependentDescription();
-		d1.setClassName("com/renren/newbie/service/NewbieHelperService");
-		d1.setMethod("getInstance ()Lcom/renren/newbie/service/NewbieHelperService; static");
-		methods.add(d1);
-		
-		DependentDescription d2 = new DependentDescription();
-		d2.setClassName("com/renren/newbie/service/NewbieHelperService");
-		d2.setMethod("setStep (IJ)Z non-static");
-		methods.add(d2);
-//		try {
-//			TemplateGenerator.generateClassFile(inputClassName, methods,"templates/singletonClass.vm");
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-		
-		String inputClassName2 = "com/renren/ugc/util/MiniGroupUtil";
-		Set<DependentDescription> methods2 = new HashSet<DependentDescription>();
-		DependentDescription d3 = new DependentDescription();
-		d3.setClassName("com/renren/ugc/util/MiniGroupUtil");
-		d3.setMethod("getHomeMenu (Lcom/xiaonei/xce/usercache/UserCache;)[Lcom/renren/ugc/model/minigroup/MiniGroup4HomeMenu; static");
-		methods2.add(d3);
+
+	public static void generateClassFile(String inputClassName,
+			Set<DependentDescription> methodDescriptionSet,
+			Set<String> fieldDescriptionSet, String templateFile,
+			Map<String, String> generatedFileMap) {
 		try {
-			TemplateGenerator.generateClassFile(inputClassName2, methods2,"templates/staticClass.vm", new HashMap());
+			VelocityContext context = new VelocityContext();
+			String targetClassName = inputClassName.replace(ConstantName.SLASH,
+					ConstantName.POINT);
+			String className = targetClassName.substring(targetClassName
+					.lastIndexOf(".") + 1);
+			context.put("ClassName", className);
+			context.put("TargetClassName", targetClassName);
+			String dir = null;
+			String packageName = null;
+			// 类名有重复,目前只处理最多重复一次
+			if (!generatedFileMap.containsKey(className)) {
+				dir = generatedFileDir;
+				packageName = defaultPackageName;
+				generatedFileMap.put(className, null);
+			} else {
+				dir = generatedDuplicateFileDir;
+				packageName = duplicatePackageName;
+			}
+			context.put("PackageName", packageName);
+			List<String> methods = new ArrayList<String>();
+			if (methodDescriptionSet != null) {
+				for (Iterator<DependentDescription> it = methodDescriptionSet
+						.iterator(); it.hasNext();) {
+					DependentDescription dependent = it.next();
+					String classMethodDescription = dependent
+							.toStringWithException();
+					// todo for static.vm
+					if (classMethodDescription
+							.contains(ConstantName.GET_INSTANCE)) {
+						continue;
+					}
+					dependent.setGeneratedProxyClassName(packageName + "."
+							+ className);
+					// 需要用模式来重构
+					String method = MethodParser.parse(classMethodDescription,
+							dependent.getMethodType(), dependent.isVarArgs());
+					methods.add(method);
+				}
+			}
+			context.put("Methods", methods);
+
+			List<String> fields = new ArrayList<String>();
+			if (fieldDescriptionSet != null) {
+				for (Iterator<String> it = fieldDescriptionSet.iterator(); it
+						.hasNext();) {
+					String fieldDependent = it.next();
+
+					String field = FieldParser.parse(targetClassName,
+							fieldDependent);
+					fields.add(field);
+				}
+			}
+
+			context.put("Fields", fields);
+
+			FileWriter writer = new FileWriter(dir + className + ".java");
+			Template template = Velocity.getTemplate(templateFile);
+			template.merge(context, writer);
+			writer.flush();
+			writer.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
 
-	} 
+	public static void generateManalFile(String className,
+			Set<DependentDescription> methodDescriptionSet,
+			String templateFile, boolean isManualPackage) {
+		try {
+			VelocityContext context = new VelocityContext();
+			String dir = isManualPackage ? generatedMannualFileDir
+					: generatedFileDir;
+			String packageName = isManualPackage ? manualPackageName
+					: defaultPackageName;
+			FileWriter writer = new FileWriter(dir + className + ".java");
+			if (methodDescriptionSet != null) {
+				for (Iterator<DependentDescription> it = methodDescriptionSet
+						.iterator(); it.hasNext();) {
+					DependentDescription dependent = it.next();
+					dependent.setGeneratedProxyClassName(packageName + "."
+							+ className);
+				}
+			}
+			Template template = Velocity.getTemplate(templateFile);
+			template.merge(context, writer);
+			writer.flush();
+			writer.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 }

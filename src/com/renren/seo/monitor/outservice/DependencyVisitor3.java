@@ -189,12 +189,19 @@ public class DependencyVisitor3 extends ClassVisitor {
 
         @Override
         public void visitTypeInsn(final int opcode, final String type) {
+        	if(type.contains("UserCountMgr")){
+        		int a = 1;
+        	}
             addType(Type.getObjectType(type));
         }
 
         @Override
         public void visitFieldInsn(final int opcode, final String owner,
                 final String name, final String desc) {
+        	if(owner.contains("UserCountMgr")){
+        		int a = 1;
+        	}
+        	boolean isStatic = opcode == Opcodes.GETSTATIC ? true: false;
             addInternalName(owner);
             addDesc(desc);
         }

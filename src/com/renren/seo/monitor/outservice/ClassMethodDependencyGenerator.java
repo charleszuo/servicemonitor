@@ -47,6 +47,13 @@ public class ClassMethodDependencyGenerator{
 	private Map<String, DependentDescription> leafNodes = new HashMap<String, DependentDescription>();
 	private Map<String, DependentDescription> allNodes = new HashMap<String, DependentDescription>();
 	
+	private Map<String, Set<String>> classStaticFiledDependentMap = new HashMap<String, Set<String>>();
+	
+	// 存放目标工程引用的所有外部依赖类和类的方法,在第一轮遍历之后可以获得
+	private Map<String, Map<String, String>> allTopNodesDependentClassOwnMethods;
+	
+	private Map<String, String> needManualGeneratedClassesMap = new HashMap<String, String>();
+	
 	private int methodCount;
 	private int round = 0;
 	
@@ -56,6 +63,12 @@ public class ClassMethodDependencyGenerator{
 		// 根据.classpath文件里记录的项目依赖的相关jar包,记录这些jar包里面所有的class名和所在的jar的映射关系,
 		// 方便后面根据class名去文件系统找jar文件来读取相应的class文件
 		generateClassJarMapping();
+		needManualGeneratedClassesMap.put("com/xiaonei/xce/buddybyaddtimecache/BuddyByAddTimeCacheAdapter", "templates/manual/BuddyByAddTimeCacheAdapter.vm");
+		needManualGeneratedClassesMap.put("com/xiaonei/xce/offerfriends/OfferFriendsAdapter", "templates/manual/OfferFriendsAdapter.vm");
+		needManualGeneratedClassesMap.put("com/xiaonei/xce/scorecache/ScoreCacheAdapter", "templates/manual/ScoreCacheAdapter.vm");
+		needManualGeneratedClassesMap.put("com/renren/xoa/lite/ServiceFactories", "templates/manual/ServiceFactories.vm");
+		needManualGeneratedClassesMap.put("com/renren/xoa/lite/ServiceFactory", "templates/manual/ServiceFactory.vm");
+		needManualGeneratedClassesMap.put("com/renren/xoa/lite/ServiceFutureHelper", "templates/manual/ServiceFutureHelper.vm");
 	}
 	
 	public Map<String, String> getClassMethodDependentGraph(){
@@ -191,6 +204,8 @@ public class ClassMethodDependencyGenerator{
 				}
 			}
 		}
+		
+		allTopNodesDependentClassOwnMethods = dependentClassOwnMethods;
 		
 		System.out.println("Round " + round + ": " + localClassCount + "个本地类的" 
 				+ methodDependentCount + "个方法依赖外部" + dependentClassOwnMethods.size() + "个类的" + methodCount + "个方法");
@@ -504,6 +519,8 @@ public class ClassMethodDependencyGenerator{
 		return leafNodes;
 	}
 	
+	
+	
 	// 给找到的顶层顶点添加Exception信息
 	public Map<String, DependentDescription> addExceptionInfoForDependency(Map<String, DependentDescription> nodes) throws Exception{
 		// map 结构:  jar1 -- class1 -- m1-d1
@@ -556,7 +573,7 @@ public class ClassMethodDependencyGenerator{
 					Map<String, DependentDescription> classMethod = classesMethods.get(className);
 					DependencyVisitor4 vistor = new DependencyVisitor4(
 							className,
-							classMethod);
+							classMethod, classStaticFiledDependentMap);
 					ClassReader classReader = new ClassReader(zipFile.getInputStream(e));
 					classReader.accept(vistor, 0);
 				}
@@ -625,16 +642,40 @@ public class ClassMethodDependencyGenerator{
 	
 	// 根据节点找对应的顶层节点
 	public Map<String, DependentDescription> getTopNodes(Map<String, DependentDescription> nodeList){
-		Map<String, DependentDescription> allTopNodeList = new HashMap<String, DependentDescription>();
+		Map<String, DependentDescription> allTopNodes = new HashMap<String, DependentDescription>();
 		// 根据黑名单的节点找到它对应的所有顶层节点
 		for(DependentDescription node: nodeList.values()){
-			recursiveGetTopNode(node, allTopNodeList);
+			recursiveGetTopNode(node, allTopNodes);
 		}
-		// 从依赖树上删除该顶层节点
-		for(DependentDescription node: allTopNodeList.values()){
-			dependentTreeRoot.getChildDependentObjectList().remove(node);
+//		// 从依赖树上删除该顶层节点
+//		for(DependentDescription node: allTopNodeList.values()){
+//			dependentTreeRoot.getChildDependentObjectList().remove(node);
+//		}
+		
+		// 在过滤顶层节点时,是根据类或方法的名称来的,第一次过滤得到了所有有外部调用的节点
+		// 需要再一次把跟顶层节点的类被目标工程应用的其他方法也加入,因为替换源文件的import,要保证生成的静态代理类包含了所有的被引用的方法
+		Map<String, DependentDescription> otherRelatedTopNodes = new HashMap<String, DependentDescription>();
+		// 所有顶层节点
+		Map<String, DependentDescription> firstRoundNodes = dependentDescriptionMap.get(0);
+		Map<String, String> handledClasses = new HashMap<String, String>();
+		for(String dependentStr: allTopNodes.keySet()){
+			DependentDescription dependent = allTopNodes.get(dependentStr);
+			String className = dependent.getClassName();
+			if(!handledClasses.containsKey(className)){
+				Map<String, String> allClassMethods = allTopNodesDependentClassOwnMethods.get(className);
+				for(String method: allClassMethods.keySet()){
+					String classMethodDescription = className + " " + method;
+					if(!allTopNodes.containsKey(classMethodDescription)){
+						DependentDescription otherDependentNode = firstRoundNodes.get(classMethodDescription);
+						otherRelatedTopNodes.put(classMethodDescription, otherDependentNode);
+					}
+				}
+				handledClasses.put(className, null);
+			}
+			
 		}
-		return allTopNodeList;
+		allTopNodes.putAll(otherRelatedTopNodes);
+		return allTopNodes;
 	}
 	
 	// 递归获得该节点对应的顶层节点
@@ -734,8 +775,9 @@ public class ClassMethodDependencyGenerator{
 					allInstance = false;
 				}
 				
-				MethodObject methodObject = MethodParser.parseMethodDescription(dependent.toStringWithException());
-				if(ConstantName.GET_INSTANCE.equals(methodObject.getMethodName())||(ConstantName.ACC_STATIC.equals(methodObject.getAccStatic()) && methodObject.getReturnType().equals(methodObject.getOwner()))){
+				MethodObject methodObject = MethodParser.parseMethodDescription(dependent.toStringWithException(), dependent.isVarArgs());
+				// 约定大于配置,有getInstance,并且是静态的,返回值等于和所在类相同的,认为是单实例模式
+				if(ConstantName.GET_INSTANCE.equals(methodObject.getMethodName()) && (ConstantName.ACC_STATIC.equals(methodObject.getAccStatic()) && methodObject.getReturnType().equals(methodObject.getOwner()))){
 					isSingleton = true;
 				}
 			}
@@ -804,7 +846,7 @@ public class ClassMethodDependencyGenerator{
 			for(Iterator<DependentDescription> it= methods.iterator(); it.hasNext();){
 				DependentDescription dependent = it.next();
 				
-				MethodObject methodObject = MethodParser.parseMethodDescription(dependent.toStringWithException());
+				MethodObject methodObject = MethodParser.parseMethodDescription(dependent.toStringWithException(), dependent.isVarArgs());
 				String returnType = methodObject.getReturnType();
 				// 除去基本类型,数组和java的类
 				if(returnType.contains(".") && !returnType.contains("[") && !returnType.startsWith("java")){
@@ -894,44 +936,37 @@ public class ClassMethodDependencyGenerator{
 			}
 		}
 		System.out.println("-----------------");
-		try {
-			TemplateGenerator.generateSystemFile("JavaDynamicProxy", null, "templates/JavaDynamicProxy.vm");
-			TemplateGenerator.generateSystemFile("CglibDynamicProxy", null, "templates/CglibDynamicProxy.vm");
-		} catch (Exception e) {
-			e.printStackTrace();
+		for(String bothStaticInstanceMethodClassName: bothStaticInstanceMethodClassMethodsMap.keySet()){
+			System.out.println("该类既有静态方法,又有实例方法,又不是单实例类的,暂时不处理: " + bothStaticInstanceMethodClassName);
 		}
+		System.out.println("-----------------");
+		TemplateGenerator.generateManalFile("JavaDynamicProxy", null, "templates/JavaDynamicProxy.vm", false);
+		TemplateGenerator.generateManalFile("CglibDynamicProxy", null, "templates/CglibDynamicProxy.vm", false);
+		
 		Map<String, String> generatedFileMap = new HashMap<String, String>();
 		for(String className: classMethodsMap.keySet()){
 			String templateFile = "";
 			Set<DependentDescription> methods = classMethodsMap.get(className);
-
+			Set<String> fields = classStaticFiledDependentMap.get(className);
 			ClassType classType = classTypeMap.get(className);
-			if(classType.getClassType() == ConstantName.CLASS_TYPE_ALL_STATIC_METHOD_CLASS){
-				templateFile = "templates/staticClass.vm";
-				try {
-					// 对xoa的基于类的泛型类型的工厂进行单独处理. 基于类的泛型类型的工厂签名: public <T> T getService(Class<T> serviceInterface)
-					// 替换ServiceFactories同时替换ServiceFactory
-					if("com/renren/xoa/lite/ServiceFactories".equals(className)){
-						TemplateGenerator.generateSystemFile("ServiceFactories", methods, "templates/ServiceFactories.vm");
-						TemplateGenerator.generateSystemFile("ServiceFactory", null, "templates/ServiceFactory.vm");
-					}else{
-						TemplateGenerator.generateClassFile(className, methods, templateFile, generatedFileMap);
-					}
-				} catch (Exception e) {
-					e.printStackTrace();
+			if("com/renren/xoa2/client/ServiceFactory".equals(className)){
+				TemplateGenerator.generateManalFile("ServiceFactory", methods, "templates/ServiceFactoryClass.vm", false);
+			}else if(needManualGeneratedClassesMap.containsKey(className)){
+				String targetClassName = className.substring(className
+						.lastIndexOf("/") + 1);
+				TemplateGenerator.generateManalFile(targetClassName, methods, needManualGeneratedClassesMap.get(className), true);
+			}else{
+				if(classType.getClassType() == ConstantName.CLASS_TYPE_ALL_STATIC_METHOD_CLASS){
+					templateFile = "templates/staticClass.vm";
+					TemplateGenerator.generateClassFile(className, methods, fields, templateFile, generatedFileMap);
+				}else if(classType.getClassType() == ConstantName.CLASS_TYPE_IS_SINGLETON){
+					templateFile = "templates/singletonClass.vm";
+					TemplateGenerator.generateClassFile(className, methods, fields, templateFile, generatedFileMap);
+				}else if(classType.getClassType() == ConstantName.CLASS_TYPE_BOTH_STATIC_INSTANCE_METHOD_CLASS){
+					bothStaticInstanceMethodClassMethodsMap.put(className, methods);
+					continue;
 				}
-			}else if(classType.getClassType() == ConstantName.CLASS_TYPE_IS_SINGLETON){
-				templateFile = "templates/singletonClass.vm";
-				try {
-					TemplateGenerator.generateClassFile(className, methods, templateFile, generatedFileMap);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}else if(classType.getClassType() == ConstantName.CLASS_TYPE_BOTH_STATIC_INSTANCE_METHOD_CLASS){
-				bothStaticInstanceMethodClassMethodsMap.put(className, methods);
-				continue;
 			}
-			
 		}
 		System.out.println("总共依赖的类数量: " + classTypeMap.size());
 		System.out.println("待处理单实例数量: " + singletonMethodClassMethodsMap.size());
@@ -983,24 +1018,27 @@ public class ClassMethodDependencyGenerator{
 		StringBuilder sb = new StringBuilder();
 		
 		for(String localClassName : localClassOuterDependentMap.keySet()){
-//			// 直接修改本地文件的imort
-//			String lcoalFilePath = ConstantName.TARGET_SOURCE_PATH + localClassName + ConstantName.JAVA_FILE_POSTFIX;
-//			// 本地类的所有外部依赖对象Map
-//			Map<String, DependentDescription> outerDependentMap = localClassOuterDependentMap.get(localClassName);
-//			FileService.updateFile(lcoalFilePath, outerDependentMap);
-			
-			Map<String, DependentDescription> outerMethods = localClassOuterDependentMap.get(localClassName);
-			for(Iterator<DependentDescription> it = outerMethods.values().iterator(); it.hasNext();){
-				DependentDescription outerMethod = it.next();
-				String originalRef = outerMethod.getClassName().replace(ConstantName.SLASH, ConstantName.POINT);
-				String newRef = outerMethod.getGeneratedProxyClassName();
-				sb.append("本地类").append(localClassName).append("要替换import:").append(originalRef).append(" --> ").append(newRef).append("\n");
-				if("com/renren/xoa/lite/ServiceFactories".equals(outerMethod.getClassName())){
-					String originalServiceFactoryRef = "com.renren.xoa.lite.ServiceFactory";
-					String newServiceFactoryRef = "com.renren.seo.serviceproxy.system.generated.ServiceFactory";
-					sb.append("本地类").append(localClassName).append("要替换import:").append(originalServiceFactoryRef).append(" --> ").append(newServiceFactoryRef).append("\n");
-				}
+			// 直接修改本地文件的imort
+			String localFilePath = ConstantName.TARGET_SOURCE_PATH + localClassName + ConstantName.JAVA_FILE_POSTFIX;
+			// 本地类的所有外部依赖对象Map
+			Map<String, DependentDescription> outerDependentMap = localClassOuterDependentMap.get(localClassName);
+			boolean result = FileService.updateFile(localFilePath, outerDependentMap);
+			if(result){
+				System.out.println("替换了import的文件: " + localFilePath);
 			}
+			
+//			Map<String, DependentDescription> outerMethods = localClassOuterDependentMap.get(localClassName);
+//			for(Iterator<DependentDescription> it = outerMethods.values().iterator(); it.hasNext();){
+//				DependentDescription outerMethod = it.next();
+//				String originalRef = outerMethod.getClassName().replace(ConstantName.SLASH, ConstantName.POINT);
+//				String newRef = outerMethod.getGeneratedProxyClassName();
+//				sb.append("本地类").append(localClassName).append("要替换import:").append(originalRef).append(" --> ").append(newRef).append("\n");
+//				if("com/renren/xoa/lite/ServiceFactories".equals(outerMethod.getClassName())){
+//					String originalServiceFactoryRef = "com.renren.xoa.lite.ServiceFactory";
+//					String newServiceFactoryRef = "com.renren.seo.serviceproxy.system.generated.ServiceFactory";
+//					sb.append("本地类").append(localClassName).append("要替换import:").append(originalServiceFactoryRef).append(" --> ").append(newServiceFactoryRef).append("\n");
+//				}
+//			}
 		}
 		try {
 			writeToFile(sb.toString(), "/home/charles/Desktop/replaceImport.log");
@@ -1107,8 +1145,8 @@ public class ClassMethodDependencyGenerator{
 			
 			callHierarchyGenerator.updateLocalFileImportReference(classMethods);
 
-			String dependencyTree = callHierarchyGenerator.displayDependencyTree();
-			callHierarchyGenerator.writeToFile(dependencyTree, "/home/charles/Desktop/dependentTree.log");
+//			String dependencyTree = callHierarchyGenerator.displayDependencyTree();
+//			callHierarchyGenerator.writeToFile(dependencyTree, "/home/charles/Desktop/dependentTree.log");
 			
 			
 			int a = 0;

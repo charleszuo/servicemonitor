@@ -1,4 +1,4 @@
-package com.renren.seo.serviceproxy.system.generated;
+package com.renren.seo.serviceproxy.generated;
 
 import java.lang.reflect.Method;
 

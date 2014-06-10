@@ -1,0 +1,21 @@
+package com.renren.seo.serviceproxy.manual.generated;
+
+import com.xiaonei.xce.scorecache.DefaultScoreCache;
+import com.xiaonei.xce.scorecache.ScoreCache;
+
+public class ScoreCacheAdapter<T extends ScoreCache>{
+	private com.xiaonei.xce.scorecache.ScoreCacheAdapter<DefaultScoreCache> target = com.xiaonei.xce.scorecache.ScoreCacheAdapter.getInstance();
+	
+	private ScoreCacheAdapter(){}
+	
+	private static ScoreCacheAdapter<DefaultScoreCache> instance = new ScoreCacheAdapter<DefaultScoreCache>();
+	
+	public static ScoreCacheAdapter<DefaultScoreCache> getInstance(){
+		return instance;
+	}
+	
+	public  com.xiaonei.xce.scorecache.DefaultScoreCache getScoreData(int userId)  {
+		 return target.getScoreData(userId);
+	}
+
+}

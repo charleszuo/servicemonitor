@@ -18,13 +18,13 @@ public interface ConstantName {
 	
 	String M2_REPO = "/home/charles/.m2/repository";
 	
-	String TARGET_WORK_SPACE = "/home/charles/workspace_renren/xiaonei-guide/";
+	String TARGET_WORK_SPACE = "/home/charles/workspace_renren/xiaonei-guide3";
 
-	String TARGET_SOURCE_PATH = TARGET_WORK_SPACE + "src/main/java/";
+	String TARGET_SOURCE_PATH = TARGET_WORK_SPACE + "/src/main/java/";
 	
-	String TARGET_CLASSES_PATH = TARGET_WORK_SPACE + "target/classes/";
+	String TARGET_CLASSES_PATH = TARGET_WORK_SPACE + "/target/classes/";
 	
-	String TARGET_CLASSPATH_FILENAME = TARGET_WORK_SPACE + ".classpath";
+	String TARGET_CLASSPATH_FILENAME = TARGET_WORK_SPACE + "/.classpath";
 	
 	int MAX_SEARCH_ROUND = 12;
 	

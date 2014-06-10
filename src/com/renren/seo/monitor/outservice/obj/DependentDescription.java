@@ -14,6 +14,8 @@ public class DependentDescription implements Comparable<DependentDescription>{
 	private int methodType;
 	private String annotation;
 	private boolean isLocalCode;
+	// 是不是有变长参数
+	private boolean isVarArgs;
 	private String generatedProxyClassName;
 	
 	private List<DependentDescription> parenetDependentObjectList = new ArrayList<DependentDescription>();
@@ -113,6 +115,14 @@ public class DependentDescription implements Comparable<DependentDescription>{
 
 	public void setIsLocalCode(boolean isLocalCode) {
 		this.isLocalCode = isLocalCode;
+	}
+
+	public boolean isVarArgs() {
+		return isVarArgs;
+	}
+
+	public void setIsVarArgs(boolean isVarArgs) {
+		this.isVarArgs = isVarArgs;
 	}
 
 	public String getGeneratedProxyClassName() {

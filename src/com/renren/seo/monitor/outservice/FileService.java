@@ -68,6 +68,7 @@ public class FileService {
 			String pattern = ".*(" + importedClassName + ").*";
 			patterns.add(Pattern.compile(pattern));
 		}
+
 		try {
 			reader = new BufferedReader(new FileReader(filePath));
 			while ((line = reader.readLine()) != null) {
@@ -103,27 +104,39 @@ public class FileService {
 	}
 
 	private static void writeFile(String filePath, String content) {  
-        BufferedWriter writer = null;  
+		BufferedWriter writer = null;  
           
         try {  
         	writer = new BufferedWriter(new FileWriter(filePath));  
         	writer.write(content);  
         } catch (Exception e) {  
             e.printStackTrace();  
-        } finally {  
-            if (writer != null) {  
+        }finally{
+        	if (writer != null) {  
                 try {  
                 	writer.close();  
-                } catch (IOException e) {  
+                } catch (IOException e1) {  
                 	writer = null;  
                 }  
-            }  
-        }  
+            } 
+        }
     }  
+	
+	private static boolean isValidFilePath(String filePath){
+		File f = new File(filePath);
+		if(!f.exists()){
+			return false;
+		}
+		return true;
+	}
 
-	public static void updateFile(String filePath, Map<String, DependentDescription> outerMethods) {
+	public static boolean updateFile(String filePath, Map<String, DependentDescription> outerMethods) {
+		if(!isValidFilePath(filePath)){
+			return false;
+		}
 		String fileContent = readAndUpdateContent(filePath, outerMethods);
 		writeFile(filePath, fileContent);
+		return true;
 	}
 
 	public static void main(String[] args) {
@@ -133,30 +146,31 @@ public class FileService {
 //		for (String className : allLocalClasses.keySet()) {
 //			System.out.println(className);
 //		}
-		String importedClassName = "com.xiaonei.sns.platform.core.opt.ice.impl.SnsAdapterFactory";
-		String generatedClassName = "com.renren.seo.serviceproxy.generated.SnsAdapterFactory";
-		String pattern = ".*(" + importedClassName + ").*";
-		Pattern p = Pattern.compile(pattern);
-		String line = "import com.xiaonei.sns.platform.core.opt.ice.impl.SnsAdapterFactory;";
-		Matcher m = p.matcher(line);
-		if(m.matches()){
-			System.out.println(m.groupCount());
-			System.out.println(m.group(1));
-			System.out.println(line.replace(m.group(1), generatedClassName));
-		}
-		
-		String filePath = "/home/charles/workspace_renren/xiaonei-guide/src/main/java/com/xiaonei/reg/guide/util/GuideUtil.java";
-		Map<String, DependentDescription> outerDependentMap = new HashMap<String, DependentDescription>();
-		DependentDescription d1 = new DependentDescription();
-		d1.setClassName("com/xiaonei/sns/platform/core/opt/ice/impl/SnsAdapterFactory");
-		d1.setGeneratedProxyClassName("com.renren.seo.serviceproxy.generated.SnsAdapterFactory");
-		outerDependentMap.put("com/xiaonei/sns/platform/core/opt/ice/impl/SnsAdapterFactory", d1);
-		DependentDescription d2 = new DependentDescription();
-		d2.setClassName("com.xiaonei.platform.component.friends.home.FriendsHome");
-		d2.setGeneratedProxyClassName("com.renren.seo.serviceproxy.generated.FriendsHome");
-		outerDependentMap.put("com.xiaonei.platform.component.friends.home.FriendsHome", d2);
-		
-		System.out.println(readAndUpdateContent(filePath, outerDependentMap));
+		System.out.println(isValidFilePath(null));
+//		String importedClassName = "com.xiaonei.sns.platform.core.opt.ice.impl.SnsAdapterFactory";
+//		String generatedClassName = "com.renren.seo.serviceproxy.generated.SnsAdapterFactory";
+//		String pattern = ".*(" + importedClassName + ").*";
+//		Pattern p = Pattern.compile(pattern);
+//		String line = "import com.xiaonei.sns.platform.core.opt.ice.impl.SnsAdapterFactory;";
+//		Matcher m = p.matcher(line);
+//		if(m.matches()){
+//			System.out.println(m.groupCount());
+//			System.out.println(m.group(1));
+//			System.out.println(line.replace(m.group(1), generatedClassName));
+//		}
+//		
+//		String filePath = "/home/charles/workspace_renren/xiaonei-guide/src/main/java/com/xiaonei/reg/guide/util/GuideUtil.java";
+//		Map<String, DependentDescription> outerDependentMap = new HashMap<String, DependentDescription>();
+//		DependentDescription d1 = new DependentDescription();
+//		d1.setClassName("com/xiaonei/sns/platform/core/opt/ice/impl/SnsAdapterFactory");
+//		d1.setGeneratedProxyClassName("com.renren.seo.serviceproxy.generated.SnsAdapterFactory");
+//		outerDependentMap.put("com/xiaonei/sns/platform/core/opt/ice/impl/SnsAdapterFactory", d1);
+//		DependentDescription d2 = new DependentDescription();
+//		d2.setClassName("com.xiaonei.platform.component.friends.home.FriendsHome");
+//		d2.setGeneratedProxyClassName("com.renren.seo.serviceproxy.generated.FriendsHome");
+//		outerDependentMap.put("com.xiaonei.platform.component.friends.home.FriendsHome", d2);
+//		
+//		System.out.println(readAndUpdateContent(filePath, outerDependentMap));
 	}
 
 	static class ClassFileFilter implements FileFilter {
