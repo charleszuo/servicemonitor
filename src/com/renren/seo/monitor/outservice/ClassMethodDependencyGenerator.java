@@ -21,7 +21,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.Opcodes;
 
 import com.renren.seo.monitor.outservice.obj.ClassType;
 import com.renren.seo.monitor.outservice.obj.DependentDescription;
@@ -421,114 +420,10 @@ public class ClassMethodDependencyGenerator{
 	}
 	
 	public Map<String, DependentDescription> collectLeafNodes(){
-// 		按层收集,结果和递归收集一样
-//		for(int i = 0; i < round -1; i++){
-//			int roundLeafCount = 0;
-//			Map<String, DependentDescription> roundDependentMap = dependentDescriptionMap.get(i);
-//			for(String key: roundDependentMap.keySet()){
-//				DependentDescription dependentDescription = roundDependentMap.get(key);
-//				if(!leafNodes.containsKey(key) && dependentDescription.getChildDependentObjectList().size() == 0){
-//					leafNodes.put(key, dependentDescription);
-//					roundLeafCount++;
-//				}
-//			}
-//		}
-//		
 		recursiveCollectNodes(dependentTreeRoot);
 		return leafNodes;
 	}
 
-	public Map<String, DependentDescription> filterVOLeaf() throws Exception{
-		Map<String, Set<DependentDescription>> dependentClassOwnMethods = new HashMap<String, Set<DependentDescription>>();
-		for(DependentDescription dependentDescription: leafNodes.values()){
-			String jarName = dependentDescription.getJarName();
-			if(jarName == null){
-				continue;
-			}
-			if(dependentClassOwnMethods.containsKey(jarName)){
-				Set<DependentDescription> dependentSet = dependentClassOwnMethods.get(jarName);
-				dependentSet.add(dependentDescription);
-			}else{
-				Set<DependentDescription> dependentSet = new HashSet<DependentDescription>();
-				dependentSet.add(dependentDescription);
-				dependentClassOwnMethods.put(jarName, dependentSet);
-			}
-		}
-		
-		Map<String, String> VOClasses = new HashMap<String, String>();
-		for(String jarName: dependentClassOwnMethods.keySet()){
-			// 加载jar文件,然后加载jar文件里要处理的class文件
-			ZipFile zipFile = new ZipFile(ConstantName.M2_REPO + jarName);
-			Enumeration<? extends ZipEntry> en = zipFile.entries();
-			Set<DependentDescription> dependentSet = dependentClassOwnMethods.get(jarName);
-			Map<String, String> classNameMap = new HashMap<String, String>();
-			for(DependentDescription dependent: dependentSet){
-				String className = dependent.getClassName() + ConstantName.CLASS_POSTFIX;
-				classNameMap.put(className, null);
-			}
-			while (en.hasMoreElements()) {
-				ZipEntry e = en.nextElement();
-				String name = e.getName();
-				
-				// 只处理依赖的class文件
-				if (classNameMap.containsKey(name)) {
-					DependencyVisitor2 vistor = new DependencyVisitor2(
-							name.substring(0, name.length() - 6),
-							allLocalClasses);
-					ClassReader classReader = new ClassReader(zipFile.getInputStream(e));
-					classReader.accept(vistor, 0);
-					// 去除interface和继承了其他类之后,又只依赖java相关类的叶子节点就是普通的VO类
-					if((classReader.getAccess() & Opcodes.ACC_INTERFACE) != 0 || !"java/lang/Object".equals(classReader.getSuperName())){
-						continue;
-					}
-					
-					Map<String, String> methodDependentMap = vistor
-							.getMethodDependentMap();
-					
-					if(methodDependentMap.size() == 0){
-						VOClasses.put(name.substring(0, name.length() - 6), null);
-					}else{
-						boolean onlyJavaRefFlag = true;
-						for(String dependentMethods : methodDependentMap.values()){
-							String[] dependentMethod = dependentMethods.split(ConstantName.SEPARATOR);
-							for(String method: dependentMethod){
-								if(!method.matches("^java.*")){
-									onlyJavaRefFlag = false;
-									break;
-								}
-							}
-							if(!onlyJavaRefFlag){
-								break;
-							}
-							
-						}
-						if(onlyJavaRefFlag){
-							VOClasses.put(name.substring(0, name.length() - 6), null);
-						}
-					}
-				}
-			}
-		}
-		
-		// 从树中删除vo 类
-		for(Iterator<Map.Entry<String, DependentDescription>> it = leafNodes.entrySet().iterator();it.hasNext();){
-			Map.Entry<String, DependentDescription> entry = it.next();
-			String[] methodDetail = entry.getKey().split(" ");
-			String className = methodDetail[0];
-			if(VOClasses.containsKey(className)){
-				// 从树中删除节点
-				DependentDescription node = entry.getValue();
-				for(DependentDescription parent: node.getParenetDependentObjectList()){
-					parent.getChildDependentObjectList().remove(node);
-				}
-				it.remove();
-			}
-		}
-		
-		return leafNodes;
-	}
-	
-	
 	
 	// 给找到的顶层顶点添加Exception信息
 	public Map<String, DependentDescription> addExceptionInfoForDependency(Map<String, DependentDescription> nodes) throws Exception{
@@ -764,12 +659,21 @@ public class ClassMethodDependencyGenerator{
 	
 	public Map<String, ClassType> getDependentClassType(Map<String, Set<DependentDescription>> classMethods){
 		for(String className: classMethods.keySet()){
+			ClassType classType = classTypeMap.get(className);
+			if(classType == null){
+				// TODO
+			}
 			Set<DependentDescription> methods = classMethods.get(className);
 			boolean allStatic = true;
 			boolean allInstance = true;
 			boolean isInterface = false;
 			boolean isSingleton = false;
 			boolean isXoaInterface = false;
+			boolean isInnerClass = className.contains(ConstantName.INNER_CLASS_FLAG);
+			if(isInnerClass){
+				classType.setClassType(ConstantName.CLASS_TYPE_IS_INNER_CLASS);
+				continue;
+			}
 			for(Iterator<DependentDescription> it = methods.iterator(); it.hasNext();){
 				DependentDescription dependent = it.next();
 				isInterface = dependent.isInterface();
@@ -789,10 +693,7 @@ public class ClassMethodDependencyGenerator{
 					isSingleton = true;
 				}
 			}
-			ClassType classType = classTypeMap.get(className);
-			if(classType == null){
-				
-			}
+			
 			if(isXoaInterface){
 				classType.setClassType(ConstantName.CLASS_TYPE_IS_XOA_INTERFACE);
 			}else if(isInterface){
@@ -813,24 +714,41 @@ public class ClassMethodDependencyGenerator{
 	}
 	
 	public void generateStaticProxyFile(Map<String, Set<DependentDescription>> classMethodsMap, Map<String, ClassType> classTypeMap){
+		// 待处理的接口和类, 可以用于结果的统计
 		Map<String, Set<DependentDescription>> interfaceClassMethodsMap = new HashMap<String, Set<DependentDescription>>();
 		Map<String, Set<DependentDescription>> xoaInterfaceClassMethodsMap = new HashMap<String, Set<DependentDescription>>();
 		Map<String, Set<DependentDescription>> allInstanceMethodClassMethodsMap = new HashMap<String, Set<DependentDescription>>();
 		Map<String, Set<DependentDescription>> singletonMethodClassMethodsMap = new HashMap<String, Set<DependentDescription>>();
 		Map<String, Set<DependentDescription>> allStaticMethodClassMethodsMap = new HashMap<String, Set<DependentDescription>>();
 		Map<String, Set<DependentDescription>> bothStaticInstanceMethodClassMethodsMap = new HashMap<String, Set<DependentDescription>>();
-		Map<String, Set<DependentDescription>> instanceClassNoFactoryMethodReturn = new HashMap<String, Set<DependentDescription>>();
-		Map<String, Set<DependentDescription>> containFinalClassFactoryMethodClassMethodsMap = new HashMap<String, Set<DependentDescription>>();
+		Map<String, Set<DependentDescription>> innerClassMethodsMap = new HashMap<String, Set<DependentDescription>>();
 		
-		Map<String, Set<DependentDescription>> unHandleInterfaceClassMethodsMap = new HashMap<String, Set<DependentDescription>>();
-		Map<String, Set<DependentDescription>> unHandleInstanceClassClassMethodsMap = new HashMap<String, Set<DependentDescription>>();
+		// 处理的接口和类, 可以用于结果的统计
+		Map<String, Set<DependentDescription>> handledXoaInterfaceMap = new HashMap<String, Set<DependentDescription>>();
+		Map<String, Set<DependentDescription>> handledInterfaceMap = new HashMap<String, Set<DependentDescription>>();
+		Map<String, Set<DependentDescription>> handledInstanceClassMap = new HashMap<String, Set<DependentDescription>>();
+		Map<String, Set<DependentDescription>> handledSingletonClassMap = new HashMap<String, Set<DependentDescription>>();
+		Map<String, Set<DependentDescription>> handledAllStaticMap = new HashMap<String, Set<DependentDescription>>();
+		// 未处理的接口和类, 可以用于结果的统计
+		Map<String, Set<DependentDescription>> unHandledInterfaceWithoutFactoryMethodMap = new HashMap<String, Set<DependentDescription>>();
+		Map<String, Set<DependentDescription>> unHandledInterfaceReturnByInterfaceMap = new HashMap<String, Set<DependentDescription>>();
+		Map<String, Set<DependentDescription>> unHandledInterfaceReturnByInnerClassMap = new HashMap<String, Set<DependentDescription>>();
+		
+		Map<String, Set<DependentDescription>> unHandledClassWithoutFactoryMethodMap = new HashMap<String, Set<DependentDescription>>();
+		Map<String, Set<DependentDescription>> unHandledClassReturnByInterfaceMap = new HashMap<String, Set<DependentDescription>>();
+		Map<String, Set<DependentDescription>> unHandledClassReturnByInnerClassMap = new HashMap<String, Set<DependentDescription>>();
+		Map<String, Set<DependentDescription>> unHandledClassWithoutDefaultConstructorMap = new HashMap<String, Set<DependentDescription>>();
+		Map<String, Set<DependentDescription>> unHandledClassIsFinalClassMap = new HashMap<String, Set<DependentDescription>>();
+		
+		Map<String, Set<DependentDescription>> unHandledClassReturnFinalClassMap = new HashMap<String, Set<DependentDescription>>();
+		Map<String, Set<DependentDescription>> unHandledClassReturnClassWithoutDefaultConstructorMap = new HashMap<String, Set<DependentDescription>>();
+		
 		// 获得数据结构: 返回值 - Set<DependentDescription>的结构
 		Map<String, Set<DependentDescription>> returnTypeMethodMap = new HashMap<String, Set<DependentDescription>>();
 		
 		for(String className: classMethodsMap.keySet()){
 			Set<DependentDescription> methods = classMethodsMap.get(className);
 
-			
 			ClassType classType = classTypeMap.get(className);
 			switch(classType.getClassType()){
 			case ConstantName.CLASS_TYPE_IS_XOA_INTERFACE:
@@ -852,11 +770,13 @@ public class ClassMethodDependencyGenerator{
 			case ConstantName.CLASS_TYPE_BOTH_STATIC_INSTANCE_METHOD_CLASS:
 				bothStaticInstanceMethodClassMethodsMap.put(className, methods);
 				break;
+			case ConstantName.CLASS_TYPE_IS_INNER_CLASS:
+				innerClassMethodsMap.put(className, methods);
+				break;
 			}
 			// 获得数据结构: 返回值 - Set<DependentDescription>的结构
 			for(Iterator<DependentDescription> it= methods.iterator(); it.hasNext();){
 				DependentDescription dependent = it.next();
-				
 				MethodObject methodObject = MethodParser.parseMethodDescription(dependent.toStringWithException(), dependent.isVarArgs());
 				String returnType = methodObject.getReturnType();
 				// 除去基本类型,数组和java的类
@@ -871,108 +791,81 @@ public class ClassMethodDependencyGenerator{
 			}
 		}
 		
-		int unhandleInterfaceCount = 0;
-		int handledInterfaceCount = 0;
 		for(String interfaceNameStr: interfaceClassMethodsMap.keySet()){
 			String interfaceName = interfaceNameStr.replace(ConstantName.SLASH, ConstantName.POINT);
 			Set<DependentDescription> dependentSet = returnTypeMethodMap.get(interfaceName);
 			if(xoaInterfaceClassMethodsMap.containsKey(interfaceNameStr)){
-				System.out.println("该接口是XOA服务接口,已经被专门处理: " + interfaceName);
+//				System.out.println("该接口是XOA服务接口,已经被专门处理: " + interfaceName);
+				handledXoaInterfaceMap.put(interfaceNameStr, null);
 				continue;
 			}else if(dependentSet == null){
-				System.out.println("该接口没有工厂方法返回: " + interfaceName);
-				unHandleInterfaceClassMethodsMap.put(interfaceName, dependentSet);
-				unhandleInterfaceCount++;
+//				System.out.println("该接口没有工厂方法返回: " + interfaceName);
+				unHandledInterfaceWithoutFactoryMethodMap.put(interfaceNameStr, dependentSet);
 				continue;
 			}
-			boolean isHandled = false;
 			for(Iterator<DependentDescription> it = dependentSet.iterator(); it.hasNext();){
 				DependentDescription dependent = it.next();
 				ClassType classType = classTypeMap.get(dependent.getClassName());
-				if(classType.getClassType() != ConstantName.CLASS_TYPE_IS_INTERFACE){
-//					if(dependent.getMethod().contains(ConstantName.ACC_NON_STATIC)){
-//						System.out.println("由实例方法返回接口的工厂方法" + dependent.toStringWithException());
-//					}else{
-						// 设置方法类型, 返回接口的工厂方法
-						dependent.setMethodType(ConstantName.METHOD_TYPE_JAVA_PROXY_METHOD);
-						isHandled = true;
-//					}
+				if(classType.getClassType() == ConstantName.CLASS_TYPE_IS_INTERFACE || classType.getClassType() == ConstantName.CLASS_TYPE_IS_XOA_INTERFACE){
+					unHandledInterfaceReturnByInterfaceMap.put(interfaceNameStr, dependentSet);
+//					System.out.println("该接口由接口方法返回, 暂不处理: " + interfaceName + " " + dependent.toStringWithException());
+				}else if(classType.getClassType() == ConstantName.CLASS_TYPE_IS_INNER_CLASS){
+					unHandledInterfaceReturnByInnerClassMap.put(interfaceNameStr, dependentSet);
+//					System.out.println("该接口由inner class返回, 暂不处理: " + interfaceName + " " + dependent.toStringWithException());
 				}else{
-					System.out.println("该接口由接口方法返回: " + interfaceName + " " + dependent.toStringWithException());
+					dependent.setMethodType(ConstantName.METHOD_TYPE_JAVA_PROXY_METHOD);
+					handledInterfaceMap.put(interfaceNameStr, null);
 				}
-			}
-			if(isHandled){
-				handledInterfaceCount ++;
-			}else{
-				unhandleInterfaceCount ++;
-				unHandleInterfaceClassMethodsMap.put(interfaceName, dependentSet);
 			}
 		}
 		System.out.println("-----------------");
-		int unhandleInstanceClassCount = 0;
-		int handledInstanceClassCount = 0;
 		for(String instanceClassName: allInstanceMethodClassMethodsMap.keySet()){
 			ClassType instanceClassType = classTypeMap.get(instanceClassName);
 			boolean isFinalClass = instanceClassType.isFinalClass();
 			boolean hasDefaultConstructor = instanceClassType.isHasDefaultConstructor();
-			
-			if("com/xiaonei/xce/userfav/UserFavAdapter".equals(instanceClassName)){
-				int a = 1;
-			}
-			// 返回值是该接口的方法的集合
+			// 返回值是该类的方法的集合
 			Set<DependentDescription> dependentSet = returnTypeMethodMap.get(instanceClassName.replace(ConstantName.SLASH, ConstantName.POINT));
 			if(dependentSet == null){
-				System.out.println("该类没有工厂方法返回: " + instanceClassName);
-				unHandleInstanceClassClassMethodsMap.put(instanceClassName, dependentSet);
-				instanceClassNoFactoryMethodReturn.put(instanceClassName, dependentSet);
-				unhandleInstanceClassCount ++;
+//				System.out.println("该类没有工厂方法返回: " + instanceClassName);
+				unHandledClassWithoutFactoryMethodMap.put(instanceClassName, dependentSet);
 				continue;
 			}
-			boolean isHandled = false;
 			for(Iterator<DependentDescription> it = dependentSet.iterator(); it.hasNext();){
 				DependentDescription dependent = it.next();
 				ClassType classType = classTypeMap.get(dependent.getClassName());
-				if(classType.getClassType() != ConstantName.CLASS_TYPE_IS_INTERFACE){
-					if(!instanceClassNoFactoryMethodReturn.containsKey(dependent.getClassName())){
-						// 如果这个类可以被Cglib代理,就用Cglib代理,否则用静态代理
-						if(!isFinalClass && hasDefaultConstructor){
-							// 设置方法类型, 返回类的工厂方法. 由纯静态类或单实例工厂类返回
-							dependent.setMethodType(ConstantName.METHOD_TYPE_CGLIB_PROXY_METHOD);
-							isHandled = true;
-						}else if(!isFinalClass && !hasDefaultConstructor){
-							classType.setClassType(ConstantName.CLASS_TYPE_CONTAIN_FINAL_CLASS_FACTORY_METHOD);
-							System.out.println("该实例类是没有无参的构造函数,不能被代理: " + instanceClassName + " " + dependent.toStringWithException());
-//							dependent.setMethodType(ConstantName.METHOD_TYPE_STATIC_PROXY_METHOD);
-//							isHandled = true;
-						}else{
-							classType.setClassType(ConstantName.CLASS_TYPE_CONTAIN_FINAL_CLASS_FACTORY_METHOD);
-							System.out.println("该实例类是final类,不能被代理: " + instanceClassName + " " + dependent.toStringWithException());
-						}
-					}else{
-						System.out.println("该实例类由实例方法new之后返回: " + instanceClassName + " " + dependent.toStringWithException());
-					}
-					
+				if(classType.getClassType() == ConstantName.CLASS_TYPE_IS_INTERFACE){
+					unHandledClassReturnByInterfaceMap.put(instanceClassName, dependentSet);
+//					System.out.println("该类由接口方法返回, 暂不处理: " + instanceClassName + " " + dependent.toStringWithException());
+				}else if(classType.getClassType() == ConstantName.CLASS_TYPE_IS_INNER_CLASS){
+					unHandledClassReturnByInnerClassMap.put(instanceClassName, dependentSet);
+//					System.out.println("该类由内部类返回, 暂不处理: " + instanceClassName + " " + dependent.toStringWithException());
 				}else{
-					System.out.println("该类由接口方法返回: " + instanceClassName + " " + dependent.toStringWithException());
+					// 如果这个类可以被Cglib代理,就用Cglib代理,否则用静态代理
+					if(!isFinalClass && hasDefaultConstructor){
+						// 设置方法类型, 返回类的工厂方法. 由纯静态类或单实例工厂类返回
+						dependent.setMethodType(ConstantName.METHOD_TYPE_CGLIB_PROXY_METHOD);
+						handledInstanceClassMap.put(instanceClassName, null);
+					}else if(!isFinalClass && !hasDefaultConstructor){
+						// 如果类的方法返回了不能被代理的类,那么这个类也不处理,防止出现在一个本地文件里面引用了这个类,既有代理的,又有没代理的,统一不处理
+						classType.setClassType(ConstantName.CLASS_TYPE_RETURN_CLASS_DONOT_HAVE_DEFAULT_CONSTRUCTOR);
+						// 不处理不能被代理的类
+						unHandledClassWithoutDefaultConstructorMap.put(instanceClassName, dependentSet);
+//						System.out.println("该实例类是没有无参的构造函数,不能被代理: " + instanceClassName + " " + dependent.toStringWithException());
+					}else{
+						// 如果类的方法返回了不能被代理的类,那么这个类也不处理,防止出现在一个本地文件里面引用了这个类,既有代理的,又有没代理的,统一不处理
+						classType.setClassType(ConstantName.CLASS_TYPE_RETURN_CLASS_CONTAIN_FINAL_CLASS_FACTORY_METHOD);
+						// 不处理不能被代理的类
+						unHandledClassIsFinalClassMap.put(instanceClassName, dependentSet);
+//						System.out.println("该实例类是final类,不能被代理: " + instanceClassName + " " + dependent.toStringWithException());
+					}
 				}
 			}
-			if(isHandled){
-				handledInstanceClassCount ++;
-			}else{
-				unHandleInstanceClassClassMethodsMap.put(instanceClassName, dependentSet);
-				unhandleInstanceClassCount ++;
-			}
 		}
 		System.out.println("-----------------");
-		for(String bothStaticInstanceMethodClassName: bothStaticInstanceMethodClassMethodsMap.keySet()){
-			System.out.println("该类既有静态方法,又有实例方法,又不是单实例类的,暂时不处理: " + bothStaticInstanceMethodClassName);
-		}
-		System.out.println("-----------------");
-		TemplateGenerator.generateManalFile("JavaDynamicProxy", null, "templates/JavaDynamicProxy.vm", false);
-		TemplateGenerator.generateManalFile("CglibDynamicProxy", null, "templates/CglibDynamicProxy.vm", false);
+		TemplateGenerator.generateManalFile("JavaDynamicProxy", null, ConstantName.TEMPLATE_JAVA_DYNAMIC_PROXY, false);
+		TemplateGenerator.generateManalFile("CglibDynamicProxy", null, ConstantName.TEMPLATE_CGLIB_DYNAMIC_PROXY, false);
 		
-		int handledAllStaticClassCount = 0;
-		int handledSingletonClassCount = 0;
+		int handledManualClassCount = 0;
 		Map<String, String> generatedFileMap = new HashMap<String, String>();
 		for(String className: classMethodsMap.keySet()){
 			String templateFile = "";
@@ -982,45 +875,87 @@ public class ClassMethodDependencyGenerator{
 			// 先处理manual template的类, 在处理自动生成的类
 			if("com/renren/xoa2/client/ServiceFactory".equals(className)){
 				TemplateGenerator.generateManalFile("ServiceFactory", methods, "templates/ServiceFactoryClass.vm", false);
+				handledManualClassCount ++;
 			}else if(needManualGeneratedClassesMap.containsKey(className)){
 				String targetClassName = className.substring(className
 						.lastIndexOf("/") + 1);
 				TemplateGenerator.generateManalFile(targetClassName, methods, needManualGeneratedClassesMap.get(className), true);
+				handledManualClassCount ++;
 			}else{
 				if(classType.getClassType() == ConstantName.CLASS_TYPE_ALL_STATIC_METHOD_CLASS){
-					templateFile = "templates/staticClass.vm";
+					templateFile = ConstantName.TEMPLATE_STATIC_CLASS;
 					TemplateGenerator.generateClassFile(className, methods, fields, templateFile, generatedFileMap);
-					handledAllStaticClassCount ++;
+					handledAllStaticMap.put(className, null);
 				}else if(classType.getClassType() == ConstantName.CLASS_TYPE_IS_SINGLETON){
-					templateFile = "templates/singletonClass.vm";
+					templateFile = ConstantName.TEMPLATE_SINGLETON_CLASS;
 					TemplateGenerator.generateClassFile(className, methods, fields, templateFile, generatedFileMap);
-					handledSingletonClassCount ++;
-				}else if(classType.getClassType() == ConstantName.CLASS_TYPE_BOTH_STATIC_INSTANCE_METHOD_CLASS){
-					bothStaticInstanceMethodClassMethodsMap.put(className, methods);
-					continue;
-				}else if(classType.getClassType() == ConstantName.CLASS_TYPE_CONTAIN_FINAL_CLASS_FACTORY_METHOD){
-					containFinalClassFactoryMethodClassMethodsMap.put(className, methods);
-					continue;
+					handledSingletonClassMap.put(className, null);
+				}else if(classType.getClassType() == ConstantName.CLASS_TYPE_RETURN_CLASS_DONOT_HAVE_DEFAULT_CONSTRUCTOR){
+					unHandledClassReturnClassWithoutDefaultConstructorMap.put(className, null);
+				}else if(classType.getClassType() == ConstantName.CLASS_TYPE_RETURN_CLASS_CONTAIN_FINAL_CLASS_FACTORY_METHOD){
+					unHandledClassReturnFinalClassMap.put(className, null);
 				}
 			}
 		}
-		System.out.println("待处理的依赖数量: " );
-		System.out.println("待处理单实例数量: " + singletonMethodClassMethodsMap.size());
-		System.out.println("待处理纯静态类数量: " + allStaticMethodClassMethodsMap.size());
-		System.out.println("待处理的接口数量: " + interfaceClassMethodsMap.size());
-		System.out.println("待处理的纯实例方法类数量: " + allInstanceMethodClassMethodsMap.size());
-		System.out.println("待处理的既有静态方法又有实例方法类数量: " + bothStaticInstanceMethodClassMethodsMap.size());
-		System.out.println("---------------------");
-		System.out.println("已经处理的依赖数量: " );
-		System.out.println("\t已处理单实例数量: " + handledSingletonClassCount);
-		System.out.println("\t已处理纯静态类数量: " + handledAllStaticClassCount);
-		System.out.println("\t已处理的接口数量: " + handledInterfaceCount);
-		System.out.println("\t已处理的纯实例方法类数量: " + handledInstanceClassCount);
-		System.out.println("未处理的依赖数量: ");
-		System.out.println("\t未处理的接口数量: " + unhandleInterfaceCount);
-		System.out.println("\t未处理的纯实例方法类数量: " + unhandleInstanceClassCount);
-		System.out.println("\t未处理的既有静态方法又有实例方法类数量: " + bothStaticInstanceMethodClassMethodsMap.size());
-		System.out.println("\t未处理的包含Final类工厂方法的类数量: " + containFinalClassFactoryMethodClassMethodsMap.size());
+		StringBuilder sb = new StringBuilder();
+		sb.append("待处理的依赖数量: \n" );
+		sb.append("待处理单实例数量: ").append(singletonMethodClassMethodsMap.size()).append("\n");
+		printClassNameInMap(singletonMethodClassMethodsMap, sb);
+		sb.append("待处理纯静态类数量: ").append(allStaticMethodClassMethodsMap.size()).append("\n");
+		printClassNameInMap(allStaticMethodClassMethodsMap, sb);
+		sb.append("待处理的接口数量: ").append(interfaceClassMethodsMap.size()).append("\n");
+		printClassNameInMap(interfaceClassMethodsMap, sb);
+		sb.append("待处理的纯实例方法类数量: " + allInstanceMethodClassMethodsMap.size()).append("\n");
+		printClassNameInMap(allInstanceMethodClassMethodsMap, sb);
+		sb.append("待处理的既有静态方法又有实例方法类数量: " + bothStaticInstanceMethodClassMethodsMap.size()).append("\n");;
+		printClassNameInMap(bothStaticInstanceMethodClassMethodsMap, sb);
+		sb.append("待处理的内部类数量: " + innerClassMethodsMap.size()).append("\n");;
+		printClassNameInMap(innerClassMethodsMap, sb);
+		sb.append("---------------------\n");
+		sb.append("已经处理的依赖数量: " ).append("\n");;
+		sb.append("已处理单实例数量: " + handledSingletonClassMap.size()).append("\n");;
+		printClassNameInMap(handledSingletonClassMap, sb);
+		sb.append("已处理纯静态类数量: " + handledAllStaticMap.size()).append("\n");;
+		printClassNameInMap(handledAllStaticMap, sb);
+		sb.append("已处理的XOA接口数量: " + handledXoaInterfaceMap.size()).append("\n");;
+		printClassNameInMap(handledXoaInterfaceMap, sb);
+		sb.append("已处理的普通接口数量: " + handledInterfaceMap.size()).append("\n");;
+		printClassNameInMap(handledInterfaceMap, sb);
+		sb.append("已处理的纯实例方法类数量: " + handledInstanceClassMap.size()).append("\n");;
+		printClassNameInMap(handledInstanceClassMap, sb);
+		sb.append("已处理的手动模板类数量: " + handledManualClassCount).append("\n");;
+		sb.append("---------------------\n");
+		sb.append("未处理的依赖数量: ").append("\n");;
+		sb.append("未处理的没有工厂方法返回的接口数量: " + unHandledInterfaceWithoutFactoryMethodMap.size()).append("\n");;
+		printClassNameInMap(unHandledInterfaceWithoutFactoryMethodMap, sb);
+		sb.append("未处理的由接口返回的接口数量: " + unHandledInterfaceReturnByInterfaceMap.size()).append("\n");;
+		printClassNameInMap(unHandledInterfaceReturnByInterfaceMap, sb);
+		sb.append("未处理的由内部类返回的接口数量: " + unHandledInterfaceReturnByInnerClassMap.size()).append("\n");;
+		printClassNameInMap(unHandledInterfaceReturnByInnerClassMap, sb);
+		sb.append("未处理的没有工厂方法返回的纯实例方法类数量: " + unHandledClassWithoutFactoryMethodMap.size()).append("\n");;
+		printClassNameInMap(unHandledClassWithoutFactoryMethodMap, sb);
+		sb.append("未处理的由接口返回的纯实例方法类数量(有些类会出现在多种情况下,可能某些情况已经处理,有些情况未处理,请在已处理类里面确认下): " + unHandledClassReturnByInterfaceMap.size()).append("\n");;
+		printClassNameInMap(unHandledClassReturnByInterfaceMap, sb);
+		sb.append("未处理的由内部类返回的纯实例方法类数量: " + unHandledClassReturnByInnerClassMap.size()).append("\n");;
+		printClassNameInMap(unHandledClassReturnByInnerClassMap, sb);
+		sb.append("未处理的没有无参构造函数的纯实例方法类数量: " + unHandledClassWithoutDefaultConstructorMap.size()).append("\n");;
+		printClassNameInMap(unHandledClassWithoutDefaultConstructorMap, sb);
+		sb.append("未处理的是final类的纯实例方法类数量: " + unHandledClassIsFinalClassMap.size()).append("\n");;
+		printClassNameInMap(unHandledClassIsFinalClassMap, sb);
+		sb.append("未处理的方法返回final类的类数量: " + unHandledClassReturnFinalClassMap.size()).append("\n");;
+		printClassNameInMap(unHandledClassReturnFinalClassMap, sb);
+		sb.append("未处理的方法返回无参构造函数类的类数量: " + unHandledClassReturnClassWithoutDefaultConstructorMap.size()).append("\n");;
+		printClassNameInMap(unHandledClassReturnClassWithoutDefaultConstructorMap, sb);
+		sb.append("未处理的既有静态方法又有实例方法类数量: " + bothStaticInstanceMethodClassMethodsMap.size()).append("\n");;
+		printClassNameInMap(bothStaticInstanceMethodClassMethodsMap, sb);
+		sb.append("未处理的内部类数量: " + innerClassMethodsMap.size()).append("\n");;
+		printClassNameInMap(innerClassMethodsMap, sb);
+		
+		try {
+			writeToFile(sb.toString(), "/home/charles/Desktop/result.log");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	// 把本地文件的import替换成import生成的静态代理类
@@ -1058,10 +993,10 @@ public class ClassMethodDependencyGenerator{
 			String localFilePath = ConstantName.TARGET_SOURCE_PATH + localClassName + ConstantName.JAVA_FILE_POSTFIX;
 			// 本地类的所有外部依赖对象Map
 			Map<String, DependentDescription> outerDependentMap = localClassOuterDependentMap.get(localClassName);
-//			boolean result = FileService.updateFile(localFilePath, outerDependentMap);
-//			if(result){
-//				System.out.println("替换了import的文件: " + localFilePath);
-//			}
+			boolean result = FileService.updateFile(localFilePath, outerDependentMap);
+			if(result){
+				System.out.println("替换了import的文件: " + localFilePath);
+			}
 			
 //			Map<String, DependentDescription> outerMethods = localClassOuterDependentMap.get(localClassName);
 //			for(Iterator<DependentDescription> it = outerMethods.values().iterator(); it.hasNext();){
@@ -1082,6 +1017,13 @@ public class ClassMethodDependencyGenerator{
 			e.printStackTrace();
 		}
 	}
+	
+	private void printClassNameInMap(Map<String, Set<DependentDescription>> map, StringBuilder sb){
+		for(String className: map.keySet() ){
+			sb.append(className).append("\n");
+		}
+	}
+	
 	
 	public void writeClassMethodsLog(Map<String, Set<DependentDescription>> classMethods, String logFile) throws Exception{
 		StringBuilder sb = new StringBuilder();
@@ -1146,16 +1088,10 @@ public class ClassMethodDependencyGenerator{
 							"com/renren/sns/minisite/xoa/client/TagService sendTagFeedToUser (ILjava/lang/String;I)Lcom/renren/xoa/lite/ServiceFuture; static",
 					new StringBuilder());
 //			/*
-//			System.out.println(dependencyTree);
 			System.out.println("依赖树中所有节点的个数: " + callHierarchyGenerator.countDependentTree());
 			
 			Map<String, DependentDescription> leafNodes = callHierarchyGenerator.collectLeafNodes();
 			callHierarchyGenerator.writeToFile(leafNodes, "/home/charles/Desktop/leaf.log");
-			
-//			Map<String, DependentDescription> filtedLeafNodes = callHierarchyGenerator.filterVOLeaf();
-//			System.out.println("过滤掉VO Classes后总共有" + filtedLeafNodes.size() + "个叶子节点:");
-//			callHierarchyGenerator.writeToFile(filtedLeafNodes, "/home/charles/Desktop/filted_leaf.log");
-//			System.out.println("过滤VO Classes后依赖树中所有节点的个数: " + callHierarchyGenerator.countDependentTree());
 			
 			Map<String, DependentDescription> blackListNodes = callHierarchyGenerator.generateBlackList();
 			System.out.println("黑名单共有节点个数: " + blackListNodes.size());
@@ -1170,9 +1106,6 @@ public class ClassMethodDependencyGenerator{
 			//按照Class组织的topNode
 			Map<String, Set<DependentDescription>> classMethods = callHierarchyGenerator.getDependentClassMethodsByNodes(topNodes);
 			callHierarchyGenerator.writeClassMethodsLog(classMethods, "/home/charles/Desktop/classMethods.log");
-			
-			System.out.println("过滤黑名单后依赖树中所有节点的个数: " + callHierarchyGenerator.countDependentTree());
-			
 			
 			Map<String, ClassType> classTypeMap = callHierarchyGenerator.getDependentClassType(classMethods);
 			

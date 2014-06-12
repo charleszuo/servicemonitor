@@ -9,7 +9,6 @@ import com.renren.seo.monitor.outservice.DependencyVisitor3;
 public class Test {
 	public static void main(String[] args){
         try {
-//        	String fileName = "/home/charles/workspace_renren/xiaonei-guide/target/classes/com/renren/sns/guide/controllers/window/GuideUserCountController.class";
         	DependencyVisitor3 v = new DependencyVisitor3();
 //        	ClassReader classReader = new ClassReader(new FileInputStream(fileName));
 			ClassReader classReader = new ClassReader("com.renren.seo.monitor.outservice.test.ClassC");

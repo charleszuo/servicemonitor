@@ -159,7 +159,6 @@ public class FileService {
 //			System.out.println(line.replace(m.group(1), generatedClassName));
 //		}
 //		
-//		String filePath = "/home/charles/workspace_renren/xiaonei-guide/src/main/java/com/xiaonei/reg/guide/util/GuideUtil.java";
 //		Map<String, DependentDescription> outerDependentMap = new HashMap<String, DependentDescription>();
 //		DependentDescription d1 = new DependentDescription();
 //		d1.setClassName("com/xiaonei/sns/platform/core/opt/ice/impl/SnsAdapterFactory");

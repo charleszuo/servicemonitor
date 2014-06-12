@@ -60,7 +60,7 @@ public class TemplateGenerator {
 			Map<String, String> generatedFileMap) {
 		try {
 			checkDirectories();
-			
+
 			VelocityContext context = new VelocityContext();
 			String targetClassName = inputClassName.replace(ConstantName.SLASH,
 					ConstantName.POINT);
@@ -87,9 +87,9 @@ public class TemplateGenerator {
 					DependentDescription dependent = it.next();
 					String classMethodDescription = dependent
 							.toStringWithException();
-					// todo for static.vm
+					// singleton不处理getInstance方法
 					if (classMethodDescription
-							.contains(ConstantName.GET_INSTANCE)) {
+							.contains(ConstantName.GET_INSTANCE) && ConstantName.TEMPLATE_SINGLETON_CLASS.equals(templateFile)) {
 						continue;
 					}
 					dependent.setGeneratedProxyClassName(packageName + "."
