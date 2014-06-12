@@ -112,7 +112,7 @@ public class MethodParser {
 					sb.append("\t\t ");
 				}
 				sb.append(caller).append(".").append(methodOject.getMethodName()).append("(").append(parseParameterResult[1]).append(");\n");
-			}else if(methodType == ConstantName.METHOD_TYPE_INTERFACE_FACTORY_METHOD){
+			}else if(methodType == ConstantName.METHOD_TYPE_JAVA_PROXY_METHOD){
 				//Text: mop.hi.oce.adapter.BuddyCoreAdapter proxyTarget = mop.hi.oce.adapter.AdapterFactory.getBuddyCoreAdapter();
 				//Text: DynamicProxy proxy = new DynamicProxy();
 				//Text: return (mop.hi.oce.adapter.BuddyCoreAdapter)proxy.bind(proxyTarget);
@@ -121,7 +121,7 @@ public class MethodParser {
 					.append(caller).append(".").append(methodOject.getMethodName()).append("(").append(parseParameterResult[1]).append(");\n");
 				sb.append("\t\tcom.renren.seo.serviceproxy.generated.JavaDynamicProxy proxy = new com.renren.seo.serviceproxy.generated.JavaDynamicProxy();\n");
 				sb.append("\t\t").append("return (").append(returnType).append(")").append("proxy.bind(").append(ConstantName.PROXY_TARGET).append(");\n");
-			}else if(methodType == ConstantName.METHOD_TYPE_ALL_INSTANCE_METHOD_CLASS_FACTORY_METHOD){
+			}else if(methodType == ConstantName.METHOD_TYPE_CGLIB_PROXY_METHOD){
 				//Text: xce.tripod.client.TripodCacheClient proxyTarget = xce.tripod.client.TripodCacheClientFactory.getClient(param24);
 				//Text: CglibDynamicProxy proxy = new CglibDynamicProxy();
 				//Text: return (xce.tripod.client.TripodCacheClient)proxy.bind(proxyTarget);

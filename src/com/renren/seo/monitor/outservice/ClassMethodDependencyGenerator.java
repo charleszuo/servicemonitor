@@ -54,6 +54,8 @@ public class ClassMethodDependencyGenerator{
 	
 	private Map<String, String> needManualGeneratedClassesMap = new HashMap<String, String>();
 	
+	private Map<String, ClassType> classTypeMap = new HashMap<String, ClassType>();
+	
 	private int methodCount;
 	private int round = 0;
 	
@@ -179,7 +181,6 @@ public class ClassMethodDependencyGenerator{
 						methodCount++;
 					}
 					
-					// 收集依赖的数据来将结果展示成依赖树,与逻辑无关
 					if(!dependentDescriptionMap.containsKey(round)){
 						dependentDescriptionMap.put(round, new HashMap<String, DependentDescription>());
 					}
@@ -234,7 +235,7 @@ public class ClassMethodDependencyGenerator{
 					String name = e.getName();
 					// 只处理依赖的class文件
 					if (name.equals(classFile)) {
-						DependencyVisitor vistor = new DependencyVisitor(
+						DependencyVisitor visitor = new DependencyVisitor(
 								name.substring(0, name.length() - 6),
 								// dependentClassOwnMethods.get(className) 返回目标class里要查找的方法, 不需要查找类的所有方法
 								dependentClassOwnMethods.get(className),
@@ -243,9 +244,17 @@ public class ClassMethodDependencyGenerator{
 								// 不需要处理目标工程里的Class文件
 								allLocalClasses);
 						ClassReader classReader = new ClassReader(zipFile.getInputStream(e));
-						classReader.accept(vistor, 0);
+						classReader.accept(visitor, 0);
+						if(!classTypeMap.containsKey(className)){
+							ClassType classType = new ClassType();
+							classType.setClassName(className);
+							classType.setFinalClass(visitor.isFinalClass());
+							classType.setHasDefaultConstructor(visitor.isHasDefaultConstructor());
+							classTypeMap.put(className, classType);
+						}
 						
-						Map<String, String> methodDependentMap = vistor
+						
+						Map<String, String> methodDependentMap = visitor
 								.getMethodDependentMap();
 						if(methodDependentMap.size() == 0){
 							// 这个类的被依赖方法没有再依赖新的外部方法,所以直接返回.这个类的这些方法被认为是叶子节点
@@ -754,7 +763,6 @@ public class ClassMethodDependencyGenerator{
 	}
 	
 	public Map<String, ClassType> getDependentClassType(Map<String, Set<DependentDescription>> classMethods){
-		Map<String, ClassType> classTypeMap = new HashMap<String, ClassType>();
 		for(String className: classMethods.keySet()){
 			Set<DependentDescription> methods = classMethods.get(className);
 			boolean allStatic = true;
@@ -781,8 +789,10 @@ public class ClassMethodDependencyGenerator{
 					isSingleton = true;
 				}
 			}
-			ClassType classType = new ClassType();
-			classType.setClassName(className);
+			ClassType classType = classTypeMap.get(className);
+			if(classType == null){
+				
+			}
 			if(isXoaInterface){
 				classType.setClassType(ConstantName.CLASS_TYPE_IS_XOA_INTERFACE);
 			}else if(isInterface){
@@ -810,6 +820,7 @@ public class ClassMethodDependencyGenerator{
 		Map<String, Set<DependentDescription>> allStaticMethodClassMethodsMap = new HashMap<String, Set<DependentDescription>>();
 		Map<String, Set<DependentDescription>> bothStaticInstanceMethodClassMethodsMap = new HashMap<String, Set<DependentDescription>>();
 		Map<String, Set<DependentDescription>> instanceClassNoFactoryMethodReturn = new HashMap<String, Set<DependentDescription>>();
+		Map<String, Set<DependentDescription>> containFinalClassFactoryMethodClassMethodsMap = new HashMap<String, Set<DependentDescription>>();
 		
 		Map<String, Set<DependentDescription>> unHandleInterfaceClassMethodsMap = new HashMap<String, Set<DependentDescription>>();
 		Map<String, Set<DependentDescription>> unHandleInstanceClassClassMethodsMap = new HashMap<String, Set<DependentDescription>>();
@@ -883,11 +894,10 @@ public class ClassMethodDependencyGenerator{
 //						System.out.println("由实例方法返回接口的工厂方法" + dependent.toStringWithException());
 //					}else{
 						// 设置方法类型, 返回接口的工厂方法
-						dependent.setMethodType(ConstantName.METHOD_TYPE_INTERFACE_FACTORY_METHOD);
+						dependent.setMethodType(ConstantName.METHOD_TYPE_JAVA_PROXY_METHOD);
 						isHandled = true;
 //					}
 				}else{
-					unHandleInterfaceClassMethodsMap.put(interfaceName, dependentSet);
 					System.out.println("该接口由接口方法返回: " + interfaceName + " " + dependent.toStringWithException());
 				}
 			}
@@ -895,12 +905,20 @@ public class ClassMethodDependencyGenerator{
 				handledInterfaceCount ++;
 			}else{
 				unhandleInterfaceCount ++;
+				unHandleInterfaceClassMethodsMap.put(interfaceName, dependentSet);
 			}
 		}
 		System.out.println("-----------------");
 		int unhandleInstanceClassCount = 0;
 		int handledInstanceClassCount = 0;
 		for(String instanceClassName: allInstanceMethodClassMethodsMap.keySet()){
+			ClassType instanceClassType = classTypeMap.get(instanceClassName);
+			boolean isFinalClass = instanceClassType.isFinalClass();
+			boolean hasDefaultConstructor = instanceClassType.isHasDefaultConstructor();
+			
+			if("com/xiaonei/xce/userfav/UserFavAdapter".equals(instanceClassName)){
+				int a = 1;
+			}
 			// 返回值是该接口的方法的集合
 			Set<DependentDescription> dependentSet = returnTypeMethodMap.get(instanceClassName.replace(ConstantName.SLASH, ConstantName.POINT));
 			if(dependentSet == null){
@@ -916,22 +934,32 @@ public class ClassMethodDependencyGenerator{
 				ClassType classType = classTypeMap.get(dependent.getClassName());
 				if(classType.getClassType() != ConstantName.CLASS_TYPE_IS_INTERFACE){
 					if(!instanceClassNoFactoryMethodReturn.containsKey(dependent.getClassName())){
-						// 设置方法类型, 返回类的工厂方法. 由纯静态类或单实例工厂类返回
-						dependent.setMethodType(ConstantName.METHOD_TYPE_ALL_INSTANCE_METHOD_CLASS_FACTORY_METHOD);
-						isHandled = true;
+						// 如果这个类可以被Cglib代理,就用Cglib代理,否则用静态代理
+						if(!isFinalClass && hasDefaultConstructor){
+							// 设置方法类型, 返回类的工厂方法. 由纯静态类或单实例工厂类返回
+							dependent.setMethodType(ConstantName.METHOD_TYPE_CGLIB_PROXY_METHOD);
+							isHandled = true;
+						}else if(!isFinalClass && !hasDefaultConstructor){
+							classType.setClassType(ConstantName.CLASS_TYPE_CONTAIN_FINAL_CLASS_FACTORY_METHOD);
+							System.out.println("该实例类是没有无参的构造函数,不能被代理: " + instanceClassName + " " + dependent.toStringWithException());
+//							dependent.setMethodType(ConstantName.METHOD_TYPE_STATIC_PROXY_METHOD);
+//							isHandled = true;
+						}else{
+							classType.setClassType(ConstantName.CLASS_TYPE_CONTAIN_FINAL_CLASS_FACTORY_METHOD);
+							System.out.println("该实例类是final类,不能被代理: " + instanceClassName + " " + dependent.toStringWithException());
+						}
 					}else{
-						unHandleInstanceClassClassMethodsMap.put(instanceClassName, dependentSet);
 						System.out.println("该实例类由实例方法new之后返回: " + instanceClassName + " " + dependent.toStringWithException());
 					}
 					
 				}else{
-					unHandleInstanceClassClassMethodsMap.put(instanceClassName, dependentSet);
 					System.out.println("该类由接口方法返回: " + instanceClassName + " " + dependent.toStringWithException());
 				}
 			}
 			if(isHandled){
 				handledInstanceClassCount ++;
 			}else{
+				unHandleInstanceClassClassMethodsMap.put(instanceClassName, dependentSet);
 				unhandleInstanceClassCount ++;
 			}
 		}
@@ -943,12 +971,15 @@ public class ClassMethodDependencyGenerator{
 		TemplateGenerator.generateManalFile("JavaDynamicProxy", null, "templates/JavaDynamicProxy.vm", false);
 		TemplateGenerator.generateManalFile("CglibDynamicProxy", null, "templates/CglibDynamicProxy.vm", false);
 		
+		int handledAllStaticClassCount = 0;
+		int handledSingletonClassCount = 0;
 		Map<String, String> generatedFileMap = new HashMap<String, String>();
 		for(String className: classMethodsMap.keySet()){
 			String templateFile = "";
 			Set<DependentDescription> methods = classMethodsMap.get(className);
 			Set<String> fields = classStaticFiledDependentMap.get(className);
 			ClassType classType = classTypeMap.get(className);
+			// 先处理manual template的类, 在处理自动生成的类
 			if("com/renren/xoa2/client/ServiceFactory".equals(className)){
 				TemplateGenerator.generateManalFile("ServiceFactory", methods, "templates/ServiceFactoryClass.vm", false);
 			}else if(needManualGeneratedClassesMap.containsKey(className)){
@@ -959,16 +990,21 @@ public class ClassMethodDependencyGenerator{
 				if(classType.getClassType() == ConstantName.CLASS_TYPE_ALL_STATIC_METHOD_CLASS){
 					templateFile = "templates/staticClass.vm";
 					TemplateGenerator.generateClassFile(className, methods, fields, templateFile, generatedFileMap);
+					handledAllStaticClassCount ++;
 				}else if(classType.getClassType() == ConstantName.CLASS_TYPE_IS_SINGLETON){
 					templateFile = "templates/singletonClass.vm";
 					TemplateGenerator.generateClassFile(className, methods, fields, templateFile, generatedFileMap);
+					handledSingletonClassCount ++;
 				}else if(classType.getClassType() == ConstantName.CLASS_TYPE_BOTH_STATIC_INSTANCE_METHOD_CLASS){
 					bothStaticInstanceMethodClassMethodsMap.put(className, methods);
+					continue;
+				}else if(classType.getClassType() == ConstantName.CLASS_TYPE_CONTAIN_FINAL_CLASS_FACTORY_METHOD){
+					containFinalClassFactoryMethodClassMethodsMap.put(className, methods);
 					continue;
 				}
 			}
 		}
-		System.out.println("总共依赖的类数量: " + classTypeMap.size());
+		System.out.println("待处理的依赖数量: " );
 		System.out.println("待处理单实例数量: " + singletonMethodClassMethodsMap.size());
 		System.out.println("待处理纯静态类数量: " + allStaticMethodClassMethodsMap.size());
 		System.out.println("待处理的接口数量: " + interfaceClassMethodsMap.size());
@@ -976,15 +1012,15 @@ public class ClassMethodDependencyGenerator{
 		System.out.println("待处理的既有静态方法又有实例方法类数量: " + bothStaticInstanceMethodClassMethodsMap.size());
 		System.out.println("---------------------");
 		System.out.println("已经处理的依赖数量: " );
-		System.out.println("\t已处理单实例数量: " + singletonMethodClassMethodsMap.size());
-		System.out.println("\t已处理纯静态类数量: " + allStaticMethodClassMethodsMap.size());
+		System.out.println("\t已处理单实例数量: " + handledSingletonClassCount);
+		System.out.println("\t已处理纯静态类数量: " + handledAllStaticClassCount);
 		System.out.println("\t已处理的接口数量: " + handledInterfaceCount);
 		System.out.println("\t已处理的纯实例方法类数量: " + handledInstanceClassCount);
 		System.out.println("未处理的依赖数量: ");
 		System.out.println("\t未处理的接口数量: " + unhandleInterfaceCount);
 		System.out.println("\t未处理的纯实例方法类数量: " + unhandleInstanceClassCount);
 		System.out.println("\t未处理的既有静态方法又有实例方法类数量: " + bothStaticInstanceMethodClassMethodsMap.size());
-		
+		System.out.println("\t未处理的包含Final类工厂方法的类数量: " + containFinalClassFactoryMethodClassMethodsMap.size());
 	}
 	
 	// 把本地文件的import替换成import生成的静态代理类
@@ -1022,10 +1058,10 @@ public class ClassMethodDependencyGenerator{
 			String localFilePath = ConstantName.TARGET_SOURCE_PATH + localClassName + ConstantName.JAVA_FILE_POSTFIX;
 			// 本地类的所有外部依赖对象Map
 			Map<String, DependentDescription> outerDependentMap = localClassOuterDependentMap.get(localClassName);
-			boolean result = FileService.updateFile(localFilePath, outerDependentMap);
-			if(result){
-				System.out.println("替换了import的文件: " + localFilePath);
-			}
+//			boolean result = FileService.updateFile(localFilePath, outerDependentMap);
+//			if(result){
+//				System.out.println("替换了import的文件: " + localFilePath);
+//			}
 			
 //			Map<String, DependentDescription> outerMethods = localClassOuterDependentMap.get(localClassName);
 //			for(Iterator<DependentDescription> it = outerMethods.values().iterator(); it.hasNext();){

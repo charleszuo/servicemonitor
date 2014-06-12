@@ -23,6 +23,10 @@ public class DependencyVisitor extends ClassVisitor {
 
 	private Map<String, String> globalClassesMethodDependentGraph;
 	
+	private boolean isFinalClass;
+	
+	private boolean hasDefaultConstructor;
+	
 	Set<String> dependentClasses = new HashSet<String>();
 
 	Stack<String> ownMethod = new Stack<String>();
@@ -54,13 +58,17 @@ public class DependencyVisitor extends ClassVisitor {
 	public void visit(final int version, final int access, final String name,
             final String signature, final String superName,
             final String[] interfaces) {
-        
+        isFinalClass = (access & Opcodes.ACC_FINAL) != 0 ? true: false;
     }
 	 
 	// 解析Class自身的Method
 	@Override
 	public MethodVisitor visitMethod(final int access, final String name,
 			final String desc, final String signature, final String[] exceptions) {
+		if(name.equals(ConstantName.INIT_METHOD) && desc.equals("()V")){
+			hasDefaultConstructor = true;
+		}
+		
 		String methodSignature = name + " " + desc;
 		if((access & Opcodes.ACC_STATIC) != 0){
 			methodSignature += " " + ConstantName.ACC_STATIC; 
@@ -89,6 +97,16 @@ public class DependencyVisitor extends ClassVisitor {
 
 		return null;
 	}
+	
+	public boolean isFinalClass() {
+		return isFinalClass;
+	}
+
+	public boolean isHasDefaultConstructor() {
+		return hasDefaultConstructor;
+	}
+
+
 
 	class MethodDependencyVisitor extends MethodVisitor {
 

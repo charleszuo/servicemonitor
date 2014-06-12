@@ -1,5 +1,6 @@
 package com.renren.seo.monitor.template;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -28,18 +29,38 @@ public class TemplateGenerator {
 		Velocity.init(p);
 	}
 
-	private static final String generatedFileDir = ConstantName.TARGET_WORK_SPACE + "/src/test/java/com/renren/seo/serviceproxy/generated/";
-	private static final String generatedDuplicateFileDir = ConstantName.TARGET_WORK_SPACE + "/src/test/java/com/renren/seo/serviceproxy/duplicate/generated/";
-	private static final String generatedMannualFileDir = ConstantName.TARGET_WORK_SPACE + "/src/test/java/com/renren/seo/serviceproxy/manual/generated/";
+	private static final String generatedFileDir = ConstantName.TARGET_WORK_SPACE
+			+ "/src/main/java/com/renren/seo/serviceproxy/generated/";
+	private static final String generatedDuplicateFileDir = ConstantName.TARGET_WORK_SPACE
+			+ "/src/main/java/com/renren/seo/serviceproxy/duplicate/generated/";
+	private static final String generatedMannualFileDir = ConstantName.TARGET_WORK_SPACE
+			+ "/src/main/java/com/renren/seo/serviceproxy/manual/generated/";
 	private static final String defaultPackageName = "com.renren.seo.serviceproxy.generated";
 	private static final String manualPackageName = "com.renren.seo.serviceproxy.manual.generated";
 	private static final String duplicatePackageName = "com.renren.seo.serviceproxy.duplicate.generated";
+
+	private static void checkDirectories() {
+		File dir = new File(generatedFileDir);
+		if (!dir.exists()) {
+			dir.mkdirs();
+		}
+		dir = new File(generatedDuplicateFileDir);
+		if (!dir.exists()) {
+			dir.mkdirs();
+		}
+		dir = new File(generatedMannualFileDir);
+		if (!dir.exists()) {
+			dir.mkdirs();
+		}
+	}
 
 	public static void generateClassFile(String inputClassName,
 			Set<DependentDescription> methodDescriptionSet,
 			Set<String> fieldDescriptionSet, String templateFile,
 			Map<String, String> generatedFileMap) {
 		try {
+			checkDirectories();
+			
 			VelocityContext context = new VelocityContext();
 			String targetClassName = inputClassName.replace(ConstantName.SLASH,
 					ConstantName.POINT);
@@ -109,6 +130,8 @@ public class TemplateGenerator {
 			Set<DependentDescription> methodDescriptionSet,
 			String templateFile, boolean isManualPackage) {
 		try {
+			checkDirectories();
+			
 			VelocityContext context = new VelocityContext();
 			String dir = isManualPackage ? generatedMannualFileDir
 					: generatedFileDir;

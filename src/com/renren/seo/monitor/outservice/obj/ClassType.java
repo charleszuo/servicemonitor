@@ -4,6 +4,26 @@ public class ClassType {
 	private String className;
 	
 	private int classType;
+	
+	private boolean finalClass;
+	
+	private boolean hasDefaultConstructor;
+	
+	public boolean isFinalClass() {
+		return finalClass;
+	}
+
+	public void setFinalClass(boolean finalClass) {
+		this.finalClass = finalClass;
+	}
+
+	public boolean isHasDefaultConstructor() {
+		return hasDefaultConstructor;
+	}
+
+	public void setHasDefaultConstructor(boolean hasDefaultConstructor) {
+		this.hasDefaultConstructor = hasDefaultConstructor;
+	}
 
 	public String getClassName() {
 		return className;

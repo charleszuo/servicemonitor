@@ -12,10 +12,10 @@ public class Test {
 //        	String fileName = "/home/charles/workspace_renren/xiaonei-guide/target/classes/com/renren/sns/guide/controllers/window/GuideUserCountController.class";
         	DependencyVisitor3 v = new DependencyVisitor3();
 //        	ClassReader classReader = new ClassReader(new FileInputStream(fileName));
-			ClassReader classReader = new ClassReader("com.renren.seo.monitor.outservice.test.Iface");
+			ClassReader classReader = new ClassReader("com.renren.seo.monitor.outservice.test.ClassC");
 			classReader.accept(v, 0);
-			
-			
+			System.out.println(v.isFinalClass());
+			System.out.println(v.isHasDefaultConstructor());
 ////			for(Type t: ServiceFactory.class.getGenericInterfaces()){
 ////				System.out.println(t);
 ////			}

@@ -19,6 +19,11 @@ import org.objectweb.asm.signature.SignatureVisitor;
 
 
 public class DependencyVisitor3 extends ClassVisitor {
+	private boolean isFinalClass;
+	
+	private boolean hasDefaultConstructor;
+	
+	
     Set<String> packages = new HashSet<String>();
 
     Map<String, Map<String, Integer>> groups = new HashMap<String, Map<String, Integer>>();
@@ -36,13 +41,22 @@ public class DependencyVisitor3 extends ClassVisitor {
     public DependencyVisitor3() {
         super(Opcodes.ASM5);
     }
-
+    
     // ClassVisitor
 
-    @Override
+    public boolean isFinalClass() {
+		return isFinalClass;
+	}
+
+	public boolean isHasDefaultConstructor() {
+		return hasDefaultConstructor;
+	}
+
+	@Override
     public void visit(final int version, final int access, final String name,
             final String signature, final String superName,
             final String[] interfaces) {
+    	isFinalClass = (access & Opcodes.ACC_FINAL) != 0? true: false;
         String p = getGroupKey(name);
         current = groups.get(p);
         if (current == null) {
@@ -91,6 +105,9 @@ public class DependencyVisitor3 extends ClassVisitor {
     @Override
     public MethodVisitor visitMethod(final int access, final String name,
             final String desc, final String signature, final String[] exceptions) {
+    	if(name.equals(ConstantName.INIT_METHOD) && desc.equals("()V")){
+			hasDefaultConstructor = true;
+		}
     	System.out.println(name + " " + desc);
         if (signature == null) {
             addMethodDesc(desc);
