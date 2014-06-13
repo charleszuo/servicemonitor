@@ -35,8 +35,11 @@ public class TemplateGenerator {
 			+ "/src/main/java/com/renren/seo/serviceproxy/duplicate/generated/";
 	private static final String generatedMannualFileDir = ConstantName.TARGET_WORK_SPACE
 			+ "/src/main/java/com/renren/seo/serviceproxy/manual/generated/";
+	private static final String generatedSystemFileDir = ConstantName.TARGET_WORK_SPACE
+			+ "/src/main/java/com/renren/seo/serviceproxy/system/generated/";
 	private static final String defaultPackageName = "com.renren.seo.serviceproxy.generated";
 	private static final String manualPackageName = "com.renren.seo.serviceproxy.manual.generated";
+	private static final String systemPackageName = "com.renren.seo.serviceproxy.system.generated";
 	private static final String duplicatePackageName = "com.renren.seo.serviceproxy.duplicate.generated";
 
 	private static void checkDirectories() {
@@ -52,6 +55,11 @@ public class TemplateGenerator {
 		if (!dir.exists()) {
 			dir.mkdirs();
 		}
+		dir = new File(generatedSystemFileDir);
+		if (!dir.exists()) {
+			dir.mkdirs();
+		}
+		
 	}
 
 	public static void generateClassFile(String inputClassName,
@@ -134,9 +142,9 @@ public class TemplateGenerator {
 			
 			VelocityContext context = new VelocityContext();
 			String dir = isManualPackage ? generatedMannualFileDir
-					: generatedFileDir;
+					: generatedSystemFileDir;
 			String packageName = isManualPackage ? manualPackageName
-					: defaultPackageName;
+					: systemPackageName;
 			FileWriter writer = new FileWriter(dir + className + ".java");
 			if (methodDescriptionSet != null) {
 				for (Iterator<DependentDescription> it = methodDescriptionSet

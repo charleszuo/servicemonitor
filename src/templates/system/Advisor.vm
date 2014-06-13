@@ -1,0 +1,10 @@
+package com.renren.seo.serviceproxy.system.generated;
+
+public interface Advisor {
+	
+	public void doBegin(MonitorBasicInfo basicInfo);
+	
+	public void doEnd(MonitorBasicInfo basicInfo);
+	
+	public void doException(MonitorBasicInfo basicInfo, Throwable t);
+}

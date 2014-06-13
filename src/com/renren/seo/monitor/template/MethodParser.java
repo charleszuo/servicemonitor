@@ -6,7 +6,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.renren.seo.monitor.outservice.ConstantName;
-import com.renren.seo.monitor.outservice.obj.DependentDescription;
 import com.renren.seo.monitor.outservice.obj.MethodObject;
 
 public class MethodParser {
@@ -44,6 +43,7 @@ public class MethodParser {
 	private static final String RIGHT_BRACKET = ")";
 	private static final String PUBLIC = "public ";
 	private static final String THROWS = "throws ";
+	private static final String JAVA_LANG_EXCEPTION = "java.lang.Exception";
 
 	private static Map<Character, String> typeMap;
 	
@@ -106,12 +106,43 @@ public class MethodParser {
 				caller = ConstantName.TARGET;
 			}
 			if(methodType == 0){
+				sb.append("\t\tcom.renren.seo.serviceproxy.system.generated.ServiceMonitor serviceMonitor =  com.renren.seo.serviceproxy.system.generated.ServiceMonitorFactory.getServiceMonitor();\n");
+				sb.append("\t\tcom.renren.seo.serviceproxy.system.generated.MonitorBasicInfo monitorBasicInfo = new com.renren.seo.serviceproxy.system.generated.MonitorBasicInfo();\n");
+				sb.append("\t\tmonitorBasicInfo.setAppId(\"SchoolName\");\n");
+				sb.append("\t\tmonitorBasicInfo.setClassName(\"").append(methodOject.getOwner()).append("\");\n");
+				sb.append("\t\tmonitorBasicInfo.setMethodName(\"").append(methodOject.getMethodName()).append("\");\n");
+				sb.append("\t\tmonitorBasicInfo.setIp(com.renren.seo.serviceproxy.system.generated.IPUtil.getLocalIp());\n");
+				sb.append("\t\ttry{\n");
 				if(!(TYPE_VOID.equals(methodOject.getReturnType()))){
-					sb.append("\t\t return ");
+					sb.append("\t\t\tserviceMonitor.begin(monitorBasicInfo);\n");
+					sb.append("\t\t\t").append(methodOject.getReturnType()).append(" result = ");
+					sb.append(caller).append(".").append(methodOject.getMethodName()).append("(").append(parseParameterResult[1]).append(");\n");
+					sb.append("\t\t\tserviceMonitor.end(monitorBasicInfo);\n");
+					sb.append("\t\t\treturn result;\n");
 				}else{
-					sb.append("\t\t ");
+					sb.append("\t\t\tserviceMonitor.begin(monitorBasicInfo);\n");
+					sb.append("\t\t\t");
+					sb.append(caller).append(".").append(methodOject.getMethodName()).append("(").append(parseParameterResult[1]).append(");\n");
+					sb.append("\t\t\tserviceMonitor.end(monitorBasicInfo);\n");
 				}
-				sb.append(caller).append(".").append(methodOject.getMethodName()).append("(").append(parseParameterResult[1]).append(");\n");
+				sb.append("\t\t}");
+				String exceptions = methodOject.getExceptions();
+				if(!"".equals(exceptions)){
+					String[] exceptionArray = exceptions.substring(6).split(COMMA);
+					for(String exception: exceptionArray){
+						sb.append("catch(").append(exception).append(" e){\n");
+						sb.append("\t\t\tserviceMonitor.handleException(monitorBasicInfo, e);\n");
+						sb.append("\t\t\tthrow e;\n");
+						sb.append("\t\t}");
+					}
+				}
+				// 对其他可能出现的运行时异常,先catch住记录一下,再抛出去RuntimeException
+				sb.append("catch(java.lang.Throwable t){\n");
+				sb.append("\t\t\tserviceMonitor.handleException(monitorBasicInfo, t);\n");
+				sb.append("\t\t\tthrow new RuntimeException(t);\n");
+				sb.append("\t\t}");
+				sb.append("\n");
+				
 			}else if(methodType == ConstantName.METHOD_TYPE_JAVA_PROXY_METHOD){
 				//Text: mop.hi.oce.adapter.BuddyCoreAdapter proxyTarget = mop.hi.oce.adapter.AdapterFactory.getBuddyCoreAdapter();
 				//Text: DynamicProxy proxy = new DynamicProxy();
@@ -119,7 +150,7 @@ public class MethodParser {
 				String returnType = methodOject.getReturnType();
 				sb.append("\t\t").append(returnType).append(" ").append(ConstantName.PROXY_TARGET).append(" = ")
 					.append(caller).append(".").append(methodOject.getMethodName()).append("(").append(parseParameterResult[1]).append(");\n");
-				sb.append("\t\tcom.renren.seo.serviceproxy.generated.JavaDynamicProxy proxy = new com.renren.seo.serviceproxy.generated.JavaDynamicProxy();\n");
+				sb.append("\t\tcom.renren.seo.serviceproxy.system.generated.JavaDynamicProxy proxy = new com.renren.seo.serviceproxy.system.generated.JavaDynamicProxy();\n");
 				sb.append("\t\t").append("return (").append(returnType).append(")").append("proxy.bind(").append(ConstantName.PROXY_TARGET).append(");\n");
 			}else if(methodType == ConstantName.METHOD_TYPE_CGLIB_PROXY_METHOD){
 				//Text: xce.tripod.client.TripodCacheClient proxyTarget = xce.tripod.client.TripodCacheClientFactory.getClient(param24);
@@ -128,7 +159,7 @@ public class MethodParser {
 				String returnType = methodOject.getReturnType();
 				sb.append("\t\t").append(returnType).append(" ").append(ConstantName.PROXY_TARGET).append(" = ")
 					.append(caller).append(".").append(methodOject.getMethodName()).append("(").append(parseParameterResult[1]).append(");\n");
-				sb.append("\t\tcom.renren.seo.serviceproxy.generated.CglibDynamicProxy proxy = new com.renren.seo.serviceproxy.generated.CglibDynamicProxy();\n");
+				sb.append("\t\tcom.renren.seo.serviceproxy.system.generated.CglibDynamicProxy proxy = new com.renren.seo.serviceproxy.system.generated.CglibDynamicProxy();\n");
 				sb.append("\t\t").append("return (").append(returnType).append(")").append("proxy.bind(").append(ConstantName.PROXY_TARGET).append(");\n");
 			}
 			sb.append("\t}\n");
@@ -251,10 +282,16 @@ public class MethodParser {
 	public static void main(String[] args){
 		String targetMethod1 = "com/xiaonei/platform/core/usercount/UserCountMgr send (ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;)Z static com.xiaonei.platform.component.application.notification.exception.AppNotificationException";
 		String targetMethod2 = "com/xiaonei/platform/core/usercount/UserCountMgr queryUnique ([Lcom/xiaonei/platform/core/opt/OpUniq;)B; non-static java/sql/SQLException";
+		String targetMethod6 = "com/xiaonei/platform/core/usercount/UserCountMgr queryUnique ([Lcom/xiaonei/platform/core/opt/OpUniq;)V; static java/sql/SQLException,java/io/IOException";
+		String targetMethod7 = "com/xiaonei/platform/core/usercount/UserCountMgr queryUnique ([Lcom/xiaonei/platform/core/opt/OpUniq;)V; static ";
+		String targetMethod8 = "com/xiaonei/platform/core/usercount/UserCountMgr queryUnique ([Lcom/xiaonei/platform/core/opt/OpUniq;)V; static java/sql/SQLException,java/io/IOException,java/lang/Exception";
 		String targetMethod3 = "com/xiaonei/platform/core/usercount/UserCountMgr findHotShare (IIIIB)Lcom/renren/xoa/lite/ServiceFuture; static java/sql/SQLException";
 		String targetMethod4 = "com/xiaonei/platform/core/usercount/UserCountMgr findHotShare (S[[Lcom/renren/xoa/lite/ServiceFuture;IIB)[[I static java/sql/SQLException";
 		String targetMethod5 = "com/xiaonei/platform/core/usercount/UserCountMgr findHotShare ()Lcom/renren/xoa/lite/ServiceFuture; static ";
 		System.out.println(parse(targetMethod1, 0, false));
 		System.out.println(parse(targetMethod2, 0, true));
+		System.out.println(parse(targetMethod6, 0, false));
+		System.out.println(parse(targetMethod7, 0, false));
+		System.out.println(parse(targetMethod8, 0, false));
 	}
 }

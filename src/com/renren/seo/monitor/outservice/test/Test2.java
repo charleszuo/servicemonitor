@@ -1,12 +1,19 @@
 package com.renren.seo.monitor.outservice.test;
 
+import com.renren.seo.monitor.outservice.IPUtil;
+
 public class Test2 {
 
 	public static void main(String[] args) {
-		ClassC c = new ClassC(1);
-		CglibDynamicProxy cglib = new CglibDynamicProxy();
-		ClassC proxy = (ClassC)cglib.bind(c);
-//		proxy.method();
+//		        try {
+//		            System.out.println(IPUtil.getLocalIp());
+//		        } catch (Exception e) {
+//		            e.printStackTrace();
+//		        }
+		long v = Long.MAX_VALUE;
+		System.out.print(v);
+		v ++;
+		System.out.print(v);
 	}
 
 }

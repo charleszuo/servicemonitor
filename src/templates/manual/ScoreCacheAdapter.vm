@@ -15,7 +15,21 @@ public class ScoreCacheAdapter<T extends ScoreCache>{
 	}
 	
 	public  com.xiaonei.xce.scorecache.DefaultScoreCache getScoreData(int userId)  {
-		 return target.getScoreData(userId);
+		com.renren.seo.serviceproxy.system.generated.ServiceMonitor serviceMonitor =  com.renren.seo.serviceproxy.system.generated.ServiceMonitorFactory.getServiceMonitor();
+		com.renren.seo.serviceproxy.system.generated.MonitorBasicInfo monitorBasicInfo = new com.renren.seo.serviceproxy.system.generated.MonitorBasicInfo();
+		monitorBasicInfo.setAppId("Guide");
+		monitorBasicInfo.setClassName("com.xiaonei.xce.scorecache.ScoreCacheAdapter");
+		monitorBasicInfo.setMethodName("getScoreData");
+		monitorBasicInfo.setIp(com.renren.seo.serviceproxy.system.generated.IPUtil.getLocalIp());
+		try{
+			serviceMonitor.begin(monitorBasicInfo);
+			com.xiaonei.xce.scorecache.DefaultScoreCache result = target.getScoreData(userId);
+			serviceMonitor.end(monitorBasicInfo);
+			return result;
+		}catch(Throwable t){
+			serviceMonitor.handleException(monitorBasicInfo, t);
+			throw new RuntimeException(t);
+		}
 	}
 
 }

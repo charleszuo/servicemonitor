@@ -15,19 +15,74 @@ public class OfferFriendsAdapter<T extends Offer>{
 	}
 	
 	public  void rebuild(int userId)  {
-		 target.rebuild(userId);
+		com.renren.seo.serviceproxy.system.generated.ServiceMonitor serviceMonitor =  com.renren.seo.serviceproxy.system.generated.ServiceMonitorFactory.getServiceMonitor();
+		com.renren.seo.serviceproxy.system.generated.MonitorBasicInfo monitorBasicInfo = new com.renren.seo.serviceproxy.system.generated.MonitorBasicInfo();
+		monitorBasicInfo.setAppId("Guide");
+		monitorBasicInfo.setClassName("com.xiaonei.xce.offerfriends.OfferFriendsAdapter");
+		monitorBasicInfo.setMethodName("rebuild");
+		monitorBasicInfo.setIp(com.renren.seo.serviceproxy.system.generated.IPUtil.getLocalIp());
+		try{
+			serviceMonitor.begin(monitorBasicInfo);
+			target.rebuild(userId);
+			serviceMonitor.end(monitorBasicInfo);
+		}catch(Throwable t){
+			serviceMonitor.handleException(monitorBasicInfo, t);
+			throw new RuntimeException(t);
+		}
 	}
 
 	public  java.util.List<DefaultOffer> getBestOffer(int userId, int limit)  {
-		 return target.getBestOffer(userId, limit);
+		com.renren.seo.serviceproxy.system.generated.ServiceMonitor serviceMonitor =  com.renren.seo.serviceproxy.system.generated.ServiceMonitorFactory.getServiceMonitor();
+		com.renren.seo.serviceproxy.system.generated.MonitorBasicInfo monitorBasicInfo = new com.renren.seo.serviceproxy.system.generated.MonitorBasicInfo();
+		monitorBasicInfo.setAppId("Guide");
+		monitorBasicInfo.setClassName("com.xiaonei.xce.offerfriends.OfferFriendsAdapter");
+		monitorBasicInfo.setMethodName("getBestOffer");
+		monitorBasicInfo.setIp(com.renren.seo.serviceproxy.system.generated.IPUtil.getLocalIp());
+		try{
+			serviceMonitor.begin(monitorBasicInfo);
+			java.util.List<DefaultOffer> result = target.getBestOffer(userId, limit);
+			serviceMonitor.end(monitorBasicInfo);
+			return result;
+		}catch(Throwable t){
+			serviceMonitor.handleException(monitorBasicInfo, t);
+			throw new RuntimeException(t);
+		}
 	}
 
 	public  java.util.List<DefaultOffer> getBestOfferByStage(int stage, int userId, int limit)  {
-		 return target.getBestOfferByStage(stage, userId, limit);
+		com.renren.seo.serviceproxy.system.generated.ServiceMonitor serviceMonitor =  com.renren.seo.serviceproxy.system.generated.ServiceMonitorFactory.getServiceMonitor();
+		com.renren.seo.serviceproxy.system.generated.MonitorBasicInfo monitorBasicInfo = new com.renren.seo.serviceproxy.system.generated.MonitorBasicInfo();
+		monitorBasicInfo.setAppId("Guide");
+		monitorBasicInfo.setClassName("com.xiaonei.xce.offerfriends.OfferFriendsAdapter");
+		monitorBasicInfo.setMethodName("getBestOfferByStage");
+		monitorBasicInfo.setIp(com.renren.seo.serviceproxy.system.generated.IPUtil.getLocalIp());
+		try{
+			serviceMonitor.begin(monitorBasicInfo);
+			java.util.List<DefaultOffer> result = target.getBestOfferByStage(stage, userId, limit);
+			serviceMonitor.end(monitorBasicInfo);
+			return result;
+		}catch(Throwable t){
+			serviceMonitor.handleException(monitorBasicInfo, t);
+			throw new RuntimeException(t);
+		}
 	}
 
 	public  java.util.List<DefaultOffer> getRandomOffer(int userId, int limit)  {
-		 return target.getRandomOffer(userId, limit);
+		com.renren.seo.serviceproxy.system.generated.ServiceMonitor serviceMonitor =  com.renren.seo.serviceproxy.system.generated.ServiceMonitorFactory.getServiceMonitor();
+		com.renren.seo.serviceproxy.system.generated.MonitorBasicInfo monitorBasicInfo = new com.renren.seo.serviceproxy.system.generated.MonitorBasicInfo();
+		monitorBasicInfo.setAppId("Guide");
+		monitorBasicInfo.setClassName("com.xiaonei.xce.offerfriends.OfferFriendsAdapter");
+		monitorBasicInfo.setMethodName("getRandomOffer");
+		monitorBasicInfo.setIp(com.renren.seo.serviceproxy.system.generated.IPUtil.getLocalIp());
+		try{
+			serviceMonitor.begin(monitorBasicInfo);
+			java.util.List<DefaultOffer> result = target.getRandomOffer(userId, limit);
+			serviceMonitor.end(monitorBasicInfo);
+			return result;
+		}catch(Throwable t){
+			serviceMonitor.handleException(monitorBasicInfo, t);
+			throw new RuntimeException(t);
+		}
 	}
 
 	

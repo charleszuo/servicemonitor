@@ -864,6 +864,13 @@ public class ClassMethodDependencyGenerator{
 		System.out.println("-----------------");
 		TemplateGenerator.generateManalFile("JavaDynamicProxy", null, ConstantName.TEMPLATE_JAVA_DYNAMIC_PROXY, false);
 		TemplateGenerator.generateManalFile("CglibDynamicProxy", null, ConstantName.TEMPLATE_CGLIB_DYNAMIC_PROXY, false);
+		TemplateGenerator.generateManalFile("Advisor", null, ConstantName.TEMPLATE_ADVISOR, false);
+		TemplateGenerator.generateManalFile("LogAdvisor", null, ConstantName.TEMPLATE_LOG_ADVISOR, false);
+		TemplateGenerator.generateManalFile("ServiceMonitor", null, ConstantName.TEMPLATE_SERVICE_MONITOR, false);
+		TemplateGenerator.generateManalFile("ServiceMonitorFactory", null, ConstantName.TEMPLATE_SERVICE_MONITOR_FACTORY, false);
+		TemplateGenerator.generateManalFile("MonitorBasicInfo", null, ConstantName.TEMPLATE_MONITOR_BASIC_INFO, false);
+		TemplateGenerator.generateManalFile("IPUtil", null, ConstantName.TEMPLATE_IP_UTIL, false);
+		TemplateGenerator.generateManalFile("SequenceService", null, ConstantName.TEMPLATE_SEQ_NUM, false);
 		
 		int handledManualClassCount = 0;
 		Map<String, String> generatedFileMap = new HashMap<String, String>();
@@ -874,7 +881,7 @@ public class ClassMethodDependencyGenerator{
 			ClassType classType = classTypeMap.get(className);
 			// 先处理manual template的类, 在处理自动生成的类
 			if("com/renren/xoa2/client/ServiceFactory".equals(className)){
-				TemplateGenerator.generateManalFile("ServiceFactory", methods, "templates/ServiceFactoryClass.vm", false);
+				TemplateGenerator.generateManalFile("ServiceFactory", methods, "templates/system/ServiceFactoryClass.vm", false);
 				handledManualClassCount ++;
 			}else if(needManualGeneratedClassesMap.containsKey(className)){
 				String targetClassName = className.substring(className
