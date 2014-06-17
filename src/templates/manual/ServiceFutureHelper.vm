@@ -1,0 +1,79 @@
+package com.renren.userinc.servicemonitor.manual.generated;
+
+import com.renren.xoa.lite.ServiceFuture;
+
+public class ServiceFutureHelper{
+
+	public static String getInvocationInfo(ServiceFuture<?> future) {
+		com.renren.userinc.servicemonitor.system.generated.ServiceMonitor serviceMonitor =  com.renren.userinc.servicemonitor.system.generated.ServiceMonitorFactory.getServiceMonitor();
+		com.renren.userinc.servicemonitor.system.generated.MonitorBasicInfo monitorBasicInfo = new com.renren.userinc.servicemonitor.system.generated.MonitorBasicInfo();
+		monitorBasicInfo.setAppId("Guide");
+		monitorBasicInfo.setClassName("com.renren.xoa.lite.ServiceFutureHelper");
+		monitorBasicInfo.setMethodName("getInvocationInfo");
+		monitorBasicInfo.setIp(com.renren.userinc.servicemonitor.system.generated.IPUtil.getLocalIp());
+		try{
+			serviceMonitor.begin(monitorBasicInfo);
+			String result = com.renren.xoa.lite.ServiceFutureHelper.getInvocationInfo(future);
+			serviceMonitor.end(monitorBasicInfo);
+			return result;
+		}catch(Throwable t){
+			serviceMonitor.handleException(monitorBasicInfo, t);
+			throw new RuntimeException(t);
+		}	
+	}
+
+	public static String getErrorMessage(ServiceFuture<?> future) throws Throwable {
+		com.renren.userinc.servicemonitor.system.generated.ServiceMonitor serviceMonitor =  com.renren.userinc.servicemonitor.system.generated.ServiceMonitorFactory.getServiceMonitor();
+		com.renren.userinc.servicemonitor.system.generated.MonitorBasicInfo monitorBasicInfo = new com.renren.userinc.servicemonitor.system.generated.MonitorBasicInfo();
+		monitorBasicInfo.setAppId("Guide");
+		monitorBasicInfo.setClassName("com.renren.xoa.lite.ServiceFutureHelper");
+		monitorBasicInfo.setMethodName("getErrorMessage");
+		monitorBasicInfo.setIp(com.renren.userinc.servicemonitor.system.generated.IPUtil.getLocalIp());
+		try{
+			serviceMonitor.begin(monitorBasicInfo);
+			String result = com.renren.xoa.lite.ServiceFutureHelper.getErrorMessage(future);
+			serviceMonitor.end(monitorBasicInfo);
+			return result;
+		}catch(Throwable t){
+			serviceMonitor.handleException(monitorBasicInfo, t);
+			throw t;
+		}
+	}
+
+	public static <T> T execute(ServiceFuture<T> future, long timeoutMillis) throws com.renren.xoa.commons.exception.XoaException {
+		com.renren.userinc.servicemonitor.system.generated.ServiceMonitor serviceMonitor =  com.renren.userinc.servicemonitor.system.generated.ServiceMonitorFactory.getServiceMonitor();
+		com.renren.userinc.servicemonitor.system.generated.MonitorBasicInfo monitorBasicInfo = new com.renren.userinc.servicemonitor.system.generated.MonitorBasicInfo();
+		monitorBasicInfo.setAppId("Guide");
+		monitorBasicInfo.setClassName("com.renren.xoa.lite.ServiceFutureHelper");
+		monitorBasicInfo.setMethodName("execute");
+		monitorBasicInfo.setIp(com.renren.userinc.servicemonitor.system.generated.IPUtil.getLocalIp());
+		try{
+			serviceMonitor.begin(monitorBasicInfo);
+			T result = com.renren.xoa.lite.ServiceFutureHelper.execute(future, timeoutMillis);
+			serviceMonitor.end(monitorBasicInfo);
+			return result;
+		}catch(Throwable t){
+			serviceMonitor.handleException(monitorBasicInfo, t);
+			throw new RuntimeException(t);
+		}
+	}
+
+	public static <T> T executeWithThroughputControl(ServiceFuture<T> future, final String key,
+            final int maxThroughput, long maxTimeout) throws com.renren.xoa.commons.exception.XoaException{
+        com.renren.userinc.servicemonitor.system.generated.ServiceMonitor serviceMonitor =  com.renren.userinc.servicemonitor.system.generated.ServiceMonitorFactory.getServiceMonitor();
+		com.renren.userinc.servicemonitor.system.generated.MonitorBasicInfo monitorBasicInfo = new com.renren.userinc.servicemonitor.system.generated.MonitorBasicInfo();
+		monitorBasicInfo.setAppId("Guide");
+		monitorBasicInfo.setClassName("com.renren.xoa.lite.ServiceFutureHelper");
+		monitorBasicInfo.setMethodName("executeWithThroughputControl");
+		monitorBasicInfo.setIp(com.renren.userinc.servicemonitor.system.generated.IPUtil.getLocalIp());
+		try{
+			serviceMonitor.begin(monitorBasicInfo);
+			T result = com.renren.xoa.lite.ServiceFutureHelper.executeWithThroughputControl(future, key, maxThroughput, maxTimeout);
+			serviceMonitor.end(monitorBasicInfo);
+			return result;
+		}catch(Throwable t){
+			serviceMonitor.handleException(monitorBasicInfo, t);
+			throw new RuntimeException(t);
+		}
+	}
+}
