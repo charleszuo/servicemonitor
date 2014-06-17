@@ -1,0 +1,10 @@
+package com.renren.userinc.servicemonitor.system.generated;
+
+public interface Advisor {
+	
+	public void doBegin(MonitorInfoBean monitorInfo);
+	
+	public void doEnd(MonitorInfoBean monitorInfo);
+	
+	public void doException(MonitorInfoBean monitorInfo, Throwable t);
+}
