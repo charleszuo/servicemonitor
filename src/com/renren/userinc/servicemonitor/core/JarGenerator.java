@@ -41,7 +41,7 @@ public class JarGenerator {
 		return jarGenerator;
 	}
 
-	public void createJar() {
+	public void compileAndPackage() {
 		try {
 			File generatedFileDir = new File(Constants.GENERATED_FILE_DIR);
 			if(!generatedFileDir.exists()){
@@ -90,6 +90,6 @@ public class JarGenerator {
 	}
 	
 	public static void main(String[] args){
-		JarGenerator.getInstance().createJar();
+		JarGenerator.getInstance().compileAndPackage();
 	}
 }

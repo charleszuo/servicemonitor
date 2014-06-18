@@ -897,8 +897,8 @@ public class ServiceMonitorGenerator{
 	}
 
 	// 把生成的文件打成jar包
-	public void createJar(){
-		JarGenerator.getInstance().createJar();
+	public void compileAndPackage(){
+		JarGenerator.getInstance().compileAndPackage();
 	}
 	
 	// 把本地文件的import替换成import生成的静态代理类
