@@ -3,6 +3,10 @@ package com.renren.userinc.servicemonitor.util;
 public interface PropertiesKey {
 	public static final String MONITOR_PROJECT_DIR = "monitor.project.directory";
 	
+	public static final String GENERATED_FILE_DIR = "generated.file.directory";
+	
+	public static final String SERVICE_MONITOR_TOOL_DIR = "servicemonitor.tool.directory";
+	
 	public static final String CLASSFILTER_WHITE_LIST = "classfilter.whitelist";
 	
 	public static final String CLASSFILTER_BLACK_LIST = "classfilter.blacklist";
@@ -18,4 +22,5 @@ public interface PropertiesKey {
 	public static final String LOG_DIR = "log.directory";
 	
 	public static final String TEMPLATE_MANUAL_CLASS = "template.manual.class";
+	
 }

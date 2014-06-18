@@ -30,14 +30,14 @@ public class TemplateGenerator {
 		Velocity.init(p);
 	}
 
-	private static final String generatedFileDir = Constants.TARGET_WORK_SPACE
-			+ "/src/main/java/com/renren/userinc/servicemonitor/generated/";
-	private static final String generatedDuplicateFileDir = Constants.TARGET_WORK_SPACE
-			+ "/src/main/java/com/renren/userinc/servicemonitor/duplicate/generated/";
-	private static final String generatedMannualFileDir = Constants.TARGET_WORK_SPACE
-			+ "/src/main/java/com/renren/userinc/servicemonitor/manual/generated/";
-	private static final String generatedSystemFileDir = Constants.TARGET_WORK_SPACE
-			+ "/src/main/java/com/renren/userinc/servicemonitor/system/generated/";
+	private static final String generatedFileDir = Constants.GENERATED_FILE_DIR
+			+ "/com/renren/userinc/servicemonitor/generated/";
+	private static final String generatedDuplicateFileDir = Constants.GENERATED_FILE_DIR
+			+ "/com/renren/userinc/servicemonitor/duplicate/generated/";
+	private static final String generatedMannualFileDir = Constants.GENERATED_FILE_DIR
+			+ "/com/renren/userinc/servicemonitor/manual/generated/";
+	private static final String generatedSystemFileDir = Constants.GENERATED_FILE_DIR
+			+ "/com/renren/userinc/servicemonitor/system/generated/";
 	private static final String defaultPackageName = "com.renren.userinc.servicemonitor.generated";
 	private static final String manualPackageName = "com.renren.userinc.servicemonitor.manual.generated";
 	private static final String systemPackageName = "com.renren.userinc.servicemonitor.system.generated";

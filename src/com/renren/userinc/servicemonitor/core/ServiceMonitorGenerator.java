@@ -895,6 +895,11 @@ public class ServiceMonitorGenerator{
 			e.printStackTrace();
 		}
 	}
+
+	// 把生成的文件打成jar包
+	public void createJar(){
+		JarGenerator.getInstance().createJar();
+	}
 	
 	// 把本地文件的import替换成import生成的静态代理类
 	public void updateLocalFileImportReference(Map<String, Set<DependentDescriptor>> outerClassMethods){

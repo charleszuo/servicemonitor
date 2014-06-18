@@ -38,6 +38,8 @@ public class Main {
 			callHierarchyGenerator.generateStaticProxyFile(classMethods, classTypeMap);
 			System.out.println("生成代理类");
 			
+			callHierarchyGenerator.createJar();
+			
 			// 更新目标原文件,替换import为生成的代理类
 			callHierarchyGenerator.updateLocalFileImportReference(classMethods);
 

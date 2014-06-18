@@ -8,7 +8,19 @@ public class Constants {
 	
 	// 捕获分组
 	public static final String JAR_SCOPE = PropertiesService.getInstance().getProperty(PropertiesKey.JAR_SCOPE);
+	
+	public static final String SERVICE_MONITOR_TOOL_DIR = PropertiesService.getInstance().getProperty(PropertiesKey.SERVICE_MONITOR_TOOL_DIR);
+	
+	public static final String COMPILE_AND_PACKAGE_GENERATED_FILES_SCRIPT = SERVICE_MONITOR_TOOL_DIR + "/src/shellscript/complie_package_generated_files.sh";
+	
+	public static final String GENERATED_FILE_DIR = PropertiesService.getInstance().getProperty(PropertiesKey.GENERATED_FILE_DIR);
+	
+	public static final String GENERATED_JAR_NAME = "servicemonitor_generated.jar";
+	
+	public static final String TARGET_PROJECT_NAME = PropertiesService.getInstance().getProperty(PropertiesKey.MONITOR_PROJECT_NAME);
 
+	public static final String TARGET_WORK_SPACE = PropertiesService.getInstance().getProperty(PropertiesKey.MONITOR_PROJECT_DIR);
+	
 	public static final String LOG_DIR = PropertiesService.getInstance().getProperty(PropertiesKey.LOG_DIR);
 	
 	public static final String LOG_CLASS_METHOD_DEPENDENT_GRAPH = "classMethodDependetGraph.log";
@@ -44,10 +56,6 @@ public class Constants {
 	public static final String TEMPLATE_SYSTEM_FILES = "JavaDynamicProxy,CglibDynamicProxy,Advice,LogAdvice,ServiceMonitor,ServiceMonitorFactory,MonitorInfoBean,IPService,SequenceService";
 	
 	public static final String M2_REPO = PropertiesService.getInstance().getProperty(PropertiesKey.MAVEN_REPO);
-	
-	public static final String TARGET_PROJECT_NAME = PropertiesService.getInstance().getProperty(PropertiesKey.MONITOR_PROJECT_NAME);
-
-	public static final String TARGET_WORK_SPACE = PropertiesService.getInstance().getProperty(PropertiesKey.MONITOR_PROJECT_DIR);
 
 	public static final String TARGET_SOURCE_PATH = PropertiesService.getInstance().isWindowsOS()? TARGET_WORK_SPACE + "\\src\\main\\java\\" : TARGET_WORK_SPACE + "/src/main/java/";
 
