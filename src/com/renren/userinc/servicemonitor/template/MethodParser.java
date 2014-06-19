@@ -138,7 +138,13 @@ public class MethodParser {
 				// 对其他可能出现的运行时异常,先catch住记录一下,再抛出去RuntimeException
 				sb.append("catch(java.lang.Throwable t){\n");
 				sb.append("\t\t\tserviceMonitor.handleException(monitorBasicInfo, t);\n");
-				sb.append("\t\t\tthrow new RuntimeException(t);\n");
+				sb.append("\t\t\tif(t instanceof RuntimeException){\n");
+				sb.append("\t\t\t\tthrow new RuntimeException(t);\n");
+				sb.append("\t\t\t}else if(t instanceof Error){\n");
+				sb.append("\t\t\t\tthrow new Error(t);\n");
+				sb.append("\t\t\t}else{\n");
+				sb.append("\t\t\t\tthrow new IllegalStateException(t);\n");
+				sb.append("\t\t\t}\n");
 				sb.append("\t\t}");
 				sb.append("\n");
 				

@@ -11,7 +11,7 @@ public class Constants {
 	
 	public static final String SERVICE_MONITOR_TOOL_DIR = PropertiesService.getInstance().getProperty(PropertiesKey.SERVICE_MONITOR_TOOL_DIR);
 	
-	public static final String COMPILE_AND_PACKAGE_GENERATED_FILES_SCRIPT = SERVICE_MONITOR_TOOL_DIR + "/src/shellscript/complie_package_generated_files.sh";
+	public static final String COMPILE_AND_PACKAGE_GENERATED_FILES_SCRIPT = SERVICE_MONITOR_TOOL_DIR + "/src/shellscript/compile_package_generated_files.sh";
 	
 	public static final String GENERATED_FILE_DIR = PropertiesService.getInstance().getProperty(PropertiesKey.GENERATED_FILE_DIR);
 	
