@@ -1,0 +1,51 @@
+package com.renren.userinc.servicemonitor.advice;
+
+import com.renren.alert.base.AlertPublisher;
+import com.renren.alert.model.Alert;
+import com.renren.userinc.servicemonitor.bean.MonitorInfoBean;
+
+public class RemoteAlertAdvice implements Advice{
+
+	@Override
+	public void doBegin(MonitorInfoBean monitorInfo) {
+		Alert alert = createAlertObj(monitorInfo);
+		alert.setStep("start");
+		alert.setCallTime(monitorInfo.getTime());
+		AlertPublisher.getInstance().alertPubliser(alert);
+	}
+
+	@Override
+	public void doEnd(MonitorInfoBean monitorInfo) {
+		Alert alert = createAlertObj(monitorInfo);
+		alert.setStep("end");
+		long now = System.currentTimeMillis();
+		alert.setCallTime(now);
+		alert.setDiffTime(now - monitorInfo.getTime());
+		AlertPublisher.getInstance().alertPubliser(alert);
+	}
+
+	@Override
+	public void doException(MonitorInfoBean monitorInfo, Throwable t) {
+		Alert alert = createAlertObj(monitorInfo);
+		alert.setStep("end");
+		long now = System.currentTimeMillis();
+		alert.setCallTime(now);
+		alert.setDiffTime(now - monitorInfo.getTime());
+		String exceptionInfo = t.toString();
+		int index = exceptionInfo.indexOf(":");
+		if(index > 0){
+			exceptionInfo = exceptionInfo.substring(0, index);
+		}
+		alert.setErrorName(exceptionInfo);
+		AlertPublisher.getInstance().alertPubliser(alert);
+	}
+
+	private Alert createAlertObj(MonitorInfoBean monitorInfo){
+		Alert alert = new Alert();
+		alert.setBusinessId(monitorInfo.getAppId());
+		alert.setMethodId(monitorInfo.getClassName() + "." + monitorInfo.getMethodName() + "." + monitorInfo.getMethodId());
+		alert.setFromIp(monitorInfo.getIp());
+		alert.setSeq(monitorInfo.getSequenceNumber());
+		return alert;
+	}
+}

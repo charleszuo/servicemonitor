@@ -1,0 +1,23 @@
+package com.renren.userinc.servicemonitor.system.generated;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class ServiceMonitorFactory {
+	private static ServiceMonitor serviceMonitor = new ServiceMonitor();
+	private static List<Advice> advisors = new ArrayList<Advice>();
+	private static Advice remoteAlertAdvisor = new RemoteAlertAdvice();
+	static {
+		advisors.add(remoteAlertAdvisor);
+		serviceMonitor.setAdvisors(advisors);
+	}
+	
+	public static void addAdvisor(Advice advisor){
+		advisors.add(advisor);
+	}
+	
+	public static ServiceMonitor getServiceMonitor(){
+		return serviceMonitor;
+	}
+	
+}
