@@ -1,5 +1,0 @@
-这个工具可以扫描本地Java工程编译后的classes文件,分析出本地类的方法依赖的所有外部的类的方法,然后生成相应的外部类的静态代理的文件,并且替换掉本地类所引用,从而可以拦截本地类对外部类的方法调用.
-
-这是一种类似AOP的实现,Aspect是本地类所依赖的外部类的方法. JoinPoint是本地类对外部方法的调用点,PointCut是所有的JoinPoint的集合, Advice定义了对JoinPoint可以做的操作,包括before, after, handleException
-
-可以在servicemonitor.properties里面定义正则表达式来指出要拦截的外部类.
